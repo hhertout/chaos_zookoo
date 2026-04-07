@@ -1,0 +1,5 @@
+kind: Rollout
+namespace: default
+interval: 1h
+matchers:
+  deploymentName: my_deployment
