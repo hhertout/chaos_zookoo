@@ -1,0 +1,58 @@
+# Rollout module — triggers a rollout restart on targeted workloads.
+#
+# Equivalent to `kubectl rollout restart` on a schedule: patches the pod
+# template with a `chaos-zookoo/restartedAt` annotation, which causes the
+# controller to spin up new pods gracefully (respecting surge/unavailable).
+# Cleaner than killing pods when you want a controlled churn.
+
+kind: Rollout
+
+# Human-readable identifier for this module instance. Appears in every log
+# line so you can distinguish multiple instances. Required.
+name: rollout-my-deployment
+
+metadata:
+  namespace: default
+
+# Scenario block — describes the chaos action itself.
+scenario:
+  # How often the targeted workloads get restarted.
+  # `interval` and `cron` are mutually exclusive — pick one.
+  interval: 1h
+
+  # Alternative to `interval`: standard 5-field cron expression.
+  # cron: "0 4 * * 1"   # every Monday at 04:00
+
+  # Delay before the very first restart after the scenario starts.
+  # Must be strictly less than `interval`. Ignored when using `cron`. Default: 0.
+  # wait: 5m
+
+  # If true, log the intended patches without applying them.
+  # Default: false
+  dryRun: false
+
+  # Matchers — rollout only operates on workload owners, not individual pods.
+  # At least one of deploymentName / daemonsetName / statefulsetName is required.
+  matchers:
+    # Deployment — the typical target.
+    deploymentName: my-deployment
+
+    # DaemonSet — restart every node-local replica.
+    # daemonsetName: my-daemonset
+
+    # StatefulSet — respects ordinal order during the restart.
+    # statefulsetName: my-statefulset
+
+# Optional post-run verification. When present, after every tick the module
+# defers a query to the configured backend and records the result on the
+# `chaos_test_success{name="<module name>"}` gauge (1 = pass, 0 = fail).
+# testing:
+#   client: grafana
+#   specs:
+#     datasourceKind: prometheus
+#     datasourceId: my-ds-uid
+#     query: sum(rate(http_requests_total{app="my-app",code=~"5.."}[5m]))
+#     wait: 5m
+#     timeWindow: 10m
+#     operator: inf
+#     threshold: 1

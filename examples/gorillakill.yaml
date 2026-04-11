@@ -1,0 +1,65 @@
+# GorillaKill module — nukes EVERY matching pod in a single pass.
+#
+# This is the "gros bourrin" scenario: no survivors, no PDB negotiation,
+# just a mass delete. Use it to simulate a full-zone outage or to validate
+# how your workloads recover from a simultaneous loss of all replicas.
+
+kind: GorillaKill
+
+# Human-readable identifier for this module instance. Appears in every log
+# line so you can distinguish multiple instances. Required.
+name: gorilla-my-app
+
+metadata:
+  namespace: default
+
+# Scenario block — describes the chaos action itself.
+scenario:
+  # When the module runs:
+  #   - once:     executed a single time at startup, then the module is done.
+  #   - periodic: runs on `interval`, like the other modules.
+  when: once
+
+  # Only required when `when: periodic`. `interval` and `cron` are mutually exclusive.
+  # interval: 10m
+
+  # Alternative to `interval` for periodic mode: standard 5-field cron expression.
+  # cron: "0 3 * * *"
+
+  # Delay before the first (or only) execution once the scenario starts.
+  # For `when: periodic`, must be strictly less than `interval`. Ignored with `cron`.
+  # For `when: once`, unbounded. Default: 0.
+  # wait: 30s
+
+  # If true, log what WOULD be killed without touching the API.
+  # Default: false
+  dryRun: false
+
+  # Matchers — same shape as the Killing module. The module collects the
+  # union of all matches and deletes every one of them.
+  matchers:
+    # 1) Label selector — everything sharing these labels dies.
+    labels:
+      app: my-app
+
+    # 2) Exact pod name.
+    # podName: my-pod-abc123
+
+    # 3) Workload owners.
+    # deploymentName: my-deployment
+    # daemonsetName: my-daemonset
+    # statefulsetName: my-statefulset
+
+# Optional post-run verification. When present, after every run the module
+# defers a query to the configured backend and records the result on the
+# `chaos_test_success{name="<module name>"}` gauge (1 = pass, 0 = fail).
+# testing:
+#   client: grafana
+#   specs:
+#     datasourceKind: prometheus
+#     datasourceId: my-ds-uid
+#     query: sum(kube_pod_status_ready{namespace="default",condition="true"})
+#     wait: 2m
+#     timeWindow: 10m
+#     operator: sup
+#     threshold: 3

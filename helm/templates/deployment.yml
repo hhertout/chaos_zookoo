@@ -1,0 +1,129 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ include "chaos-zookoo.fullname" . }}
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "chaos-zookoo.labels" . | nindent 4 }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      {{- include "chaos-zookoo.selectorLabels" . | nindent 6 }}
+  template:
+    metadata:
+      labels:
+        {{- include "chaos-zookoo.selectorLabels" . | nindent 8 }}
+    spec:
+      serviceAccountName: {{ include "chaos-zookoo.serviceAccountName" . }}
+      containers:
+        - name: {{ .Chart.Name }}
+          image: "{{ .Values.image.repository }}:{{ .Values.image.tag }}"
+          imagePullPolicy: IfNotPresent
+          ports:
+            - name: prometheus
+              containerPort: {{ .Values.monitoring.prometheus.port }}
+              protocol: TCP
+          resources:
+            {{- toYaml .Values.resources | nindent 12 }}
+          {{- if .Values.readinessProbe }}
+          readinessProbe:
+            {{- toYaml .Values.readinessProbe | nindent 12 }}
+          {{- end }}
+          {{- if .Values.livenessProbe }}
+          livenessProbe:
+            {{- toYaml .Values.livenessProbe | nindent 12 }}
+          {{- end }}
+          env:
+            - name: K8S_HOST
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "chaos-zookoo.fullname" . }}-secret
+                  key: K8S_HOST
+            - name: K8S_CLUSTER_CERT
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "chaos-zookoo.fullname" . }}-secret
+                  key: K8S_CLUSTER_CERT
+            - name: K8S_TOKEN
+              valueFrom:
+                secretKeyRef:
+                  name: {{ include "chaos-zookoo.fullname" . }}-secret
+                  key: K8S_TOKEN
+            - name: METRICS_ADDR
+              value: {{ printf ":%v" .Values.monitoring.prometheus.port | quote }}
+            {{- if .Values.extraEnv }}
+            {{- toYaml .Values.extraEnv | nindent 12 }}
+            {{- end }}
+          args:
+            - "--config=/app/config.yaml"
+          volumeMounts:
+            - name: config
+              mountPath: /app/config.yaml
+              subPath: config.yaml
+            {{- if .Values.extraVolumeMounts }}
+            {{- toYaml .Values.extraVolumeMounts | nindent 12 }}
+            {{- end }}
+        {{- if .Values.monitoring.exporter.enabled }}
+        - name: exporter
+          image: "{{ .Values.monitoring.exporter.image.repository }}:{{ .Values.monitoring.exporter.image.tag }}"
+          imagePullPolicy: {{ .Values.monitoring.exporter.image.pullPolicy }}
+          args:
+            - run
+            - /etc/alloy/config.alloy
+            - --storage.path=/tmp/alloy
+            - --server.http.listen-addr=0.0.0.0:12345
+            - --server.http.ui-path-prefix=/
+            - --cluster.name=alloy-cluster
+            - --stability.level=public-preview
+          resources:
+            {{- toYaml .Values.monitoring.exporter.resources | nindent 12 }}
+          env:
+            - name: OTEL_EXPORTER_OTLP_ENDPOINT
+              value: {{ .Values.monitoring.exporter.endpoint.url | quote }}
+            - name: ALLOY_DEPLOY_MODE
+              value: helm
+            - name: HOSTNAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.nodeName
+            - name: K8S_NODE_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: spec.nodeName
+            - name: K8S_POD_NAME
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.name
+            - name: K8S_NAMESPACE
+              valueFrom:
+                fieldRef:
+                  apiVersion: v1
+                  fieldPath: metadata.namespace
+          livenessProbe:
+            httpGet:
+              path: /-/ready
+              port: 12345
+          volumeMounts:
+            - name: exporter-config
+              mountPath: /etc/alloy/config.alloy
+              subPath: config.alloy
+        {{- end }}
+        {{- if .Values.extraContainers }}
+        {{- toYaml .Values.extraContainers | nindent 8 }}
+        {{- end }}
+      volumes:
+        - name: config
+          configMap:
+            name: {{ include "chaos-zookoo.fullname" . }}-config
+        {{- if .Values.monitoring.exporter.enabled }}
+        - name: exporter-config
+          configMap:
+            name: {{ include "chaos-zookoo.fullname" . }}-exporter-config
+        {{- end }}
+        {{- if .Values.extraVolumes }}
+        {{- toYaml .Values.extraVolumes | nindent 8 }}
+        {{- end }}

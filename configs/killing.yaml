@@ -1,7 +1,0 @@
-kind: Killing
-namespace: default
-minAvailable: 1
-interval: 60s
-matchers:
-  labels:
-    app: my-app

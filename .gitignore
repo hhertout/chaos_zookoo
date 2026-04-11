@@ -1,3 +1,11 @@
 bin/
 coverage.out
 .claude
+
+chaos_zookoo
+build/
+temp/
+
+.env
+
+local/

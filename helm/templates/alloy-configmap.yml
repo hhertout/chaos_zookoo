@@ -1,0 +1,54 @@
+{{- if .Values.monitoring.exporter.enabled }}
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ include "chaos-zookoo.fullname" . }}-exporter-config
+  namespace: {{ .Release.Namespace }}
+  labels:
+    {{- include "chaos-zookoo.labels" . | nindent 4 }}
+data:
+  config.alloy: |-
+    prometheus.scrape "chaos_scraper" {
+        forward_to = [otelcol.receiver.prometheus.default.receiver]
+
+        job_name = "chaos-zookoo"
+
+        targets = [
+            {"__address__" = "127.0.0.1:{{ .Values.monitoring.prometheus.port }}"},
+        ]
+
+        scrape_interval = {{ .Values.monitoring.exporter.scrapeInterval | default "15s" | quote }}
+        metrics_path    = "/metrics"
+    }
+
+    otelcol.receiver.prometheus "default" {
+        output {
+            metrics = [otelcol.processor.transform.default.input]
+        }
+    }
+
+    otelcol.processor.transform "default" {
+        error_mode = "ignore"
+
+        metric_statements {
+            context = "resource"
+            statements = [
+                `set(attributes["k8s.namespace.name"], ` + sys.env("K8S_NAMESPACE") + `)`,
+                `set(attributes["k8s.pod.name"], ` + sys.env("K8S_POD_NAME") + `)`,
+                `set(attributes["k8s.node.name"], ` + sys.env("K8S_NODE_NAME") + `)`,
+                `set(attributes["host"], ` + sys.env("HOSTNAME") + `)`,
+            ]
+        }
+
+        output {
+            metrics = [otelcol.exporter.otlp.default.input]
+        }
+    }
+
+    otelcol.exporter.otlp "default" {
+        client {
+            endpoint = sys.env("OTEL_EXPORTER_OTLP_ENDPOINT")
+            insecure = {{ .Values.monitoring.exporter.endpoint.insecure | default false }}
+        }
+    }
+{{- end }}

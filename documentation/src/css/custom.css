@@ -1,0 +1,104 @@
+@import url('https://fonts.googleapis.com/css2?family=Syne:wght@400;500;600;700;800&family=Outfit:wght@300;400;500;600&family=JetBrains+Mono:ital,wght@0,400;0,500;1,400&display=swap');
+
+/* ─── Infima color overrides ────────────────────────────────────────────── */
+
+:root {
+  --ifm-color-primary: #00b87a;
+  --ifm-color-primary-dark: #00a66e;
+  --ifm-color-primary-darker: #009d68;
+  --ifm-color-primary-darkest: #008155;
+  --ifm-color-primary-light: #00ca86;
+  --ifm-color-primary-lighter: #00d38e;
+  --ifm-color-primary-lightest: #1adfa0;
+  --ifm-code-font-size: 90%;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 184, 122, 0.12);
+
+  --ifm-font-family-base: 'Outfit', system-ui, -apple-system, sans-serif;
+  --ifm-heading-font-family: 'Syne', system-ui, sans-serif;
+  --ifm-font-family-monospace: 'JetBrains Mono', 'Fira Code', monospace;
+  --ifm-font-size-base: 16px;
+
+  /* Design tokens — light */
+  --czk-accent: #00e5a0;
+  --czk-text: #0f172a;
+  --czk-muted: #64748b;
+  --czk-border: rgba(15, 23, 42, 0.1);
+  --czk-surface: #f8fafc;
+  --czk-surface-elevated: #f1f5f9;
+  --czk-card-bg: #ffffff;
+  --czk-features-bg: #f8fafc;
+  --czk-code-text: #1e293b;
+  --czk-grid-color: rgba(0, 184, 122, 0.07);
+}
+
+[data-theme='dark'] {
+  --ifm-color-primary: #00e5a0;
+  --ifm-color-primary-dark: #00ce90;
+  --ifm-color-primary-darker: #00c287;
+  --ifm-color-primary-darkest: #00a06e;
+  --ifm-color-primary-light: #1aebaa;
+  --ifm-color-primary-lighter: #26eeaf;
+  --ifm-color-primary-lightest: #4df2be;
+  --docusaurus-highlighted-code-line-bg: rgba(0, 229, 160, 0.1);
+
+  --ifm-background-color: #050814;
+  --ifm-background-surface-color: #0d1117;
+  --ifm-footer-background-color: #07091a;
+
+  /* Design tokens — dark */
+  --czk-accent: #00e5a0;
+  --czk-text: #e2e8f0;
+  --czk-muted: #94a3b8;
+  --czk-border: rgba(255, 255, 255, 0.08);
+  --czk-surface: #0d1117;
+  --czk-surface-elevated: #161b22;
+  --czk-card-bg: rgba(13, 17, 23, 0.8);
+  --czk-features-bg: rgba(10, 14, 26, 0.6);
+  --czk-code-text: #a6e3a1;
+  --czk-grid-color: rgba(0, 229, 160, 0.05);
+}
+
+/* ─── Typography ────────────────────────────────────────────────────────── */
+
+h1, h2, h3, h4, h5, h6 {
+  font-family: 'Syne', system-ui, sans-serif;
+  letter-spacing: -0.02em;
+}
+
+/* ─── Navbar ────────────────────────────────────────────────────────────── */
+
+.navbar {
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-bottom: 1px solid var(--czk-border);
+  box-shadow: none;
+}
+
+[data-theme='dark'] .navbar {
+  background: rgba(5, 8, 20, 0.85) !important;
+}
+
+.navbar__brand {
+  font-family: 'Syne', system-ui, sans-serif;
+  font-weight: 700;
+  letter-spacing: -0.03em;
+}
+
+/* ─── Footer ────────────────────────────────────────────────────────────── */
+
+.footer {
+  border-top: 1px solid var(--czk-border);
+}
+
+/* ─── Sidebar ───────────────────────────────────────────────────────────── */
+
+.theme-doc-sidebar-container {
+  border-right: 1px solid var(--czk-border) !important;
+}
+
+/* ─── Scrollbar ─────────────────────────────────────────────────────────── */
+
+::-webkit-scrollbar { width: 5px; height: 5px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--czk-border); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(0, 229, 160, 0.35); }

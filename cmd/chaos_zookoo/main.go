@@ -4,25 +4,55 @@ import (
 	"context"
 	"flag"
 	"fmt"
-	"log/slog"
 	"os"
 	"os/signal"
 	"syscall"
 
+	"github.com/hhertout/chaos_zookoo/internal/config"
+	"github.com/hhertout/chaos_zookoo/internal/orchestrator"
+	"github.com/hhertout/chaos_zookoo/pkg/gorillakill"
+	"github.com/hhertout/chaos_zookoo/pkg/killing"
+	"github.com/hhertout/chaos_zookoo/pkg/loadkit"
+	"github.com/hhertout/chaos_zookoo/pkg/metrics"
 	"github.com/hhertout/chaos_zookoo/pkg/module"
-	"github.com/hhertout/chaos_zookoo/pkg/module/killing"
-	"github.com/hhertout/chaos_zookoo/pkg/module/rollout"
-	"github.com/hhertout/chaos_zookoo/pkg/orchestrator"
+	"github.com/hhertout/chaos_zookoo/pkg/rollout"
+	"github.com/hhertout/chaos_zookoo/pkg/testkit"
+	"github.com/joho/godotenv"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 	"k8s.io/client-go/kubernetes"
 )
 
-const (
-	kindKilling = "Killing"
-	kindRollout = "Rollout"
-)
+var builders = map[string]module.Builder{
+	"Killing":     killing.Build,
+	"Rollout":     rollout.Build,
+	"GorillaKill": gorillakill.Build,
+}
 
 func main() {
+	logCfg := zap.NewProductionConfig()
+	logCfg.EncoderConfig.EncodeTime = zapcore.RFC3339TimeEncoder
+	logger, err := logCfg.Build()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "failed to init logger: %v\n", err)
+		os.Exit(1)
+	}
+	defer logger.Sync() //nolint:errcheck
+	zap.ReplaceGlobals(logger)
+
+	if err := run(); err != nil {
+		zap.L().Error("fatal", zap.Error(err))
+		os.Exit(1)
+	}
+}
+
+func run() error {
+	if err := godotenv.Load(); err != nil && !os.IsNotExist(err) {
+		return fmt.Errorf("loading .env: %w", err)
+	}
+
 	configPath := flag.String("config", "", "path to config directory or single config file")
+	flag.StringVar(configPath, "C", "", "shorthand for --config")
 	flag.Parse()
 
 	if *configPath == "" {
@@ -32,67 +62,83 @@ func main() {
 		*configPath = "configs"
 	}
 
-	entries, err := module.LoadEntries(*configPath)
+	entries, err := config.LoadEntries(*configPath)
 	if err != nil {
-		slog.Error("failed to load config entries", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("loading config: %w", err)
 	}
-	slog.Info("loaded config entries", "kinds", len(entries))
+	zap.L().Info("loaded config entries", zap.Int("kinds", len(entries)))
 
-	k8sConfig, err := buildK8sConfig()
+	k8sCfg, err := buildK8sConfig()
 	if err != nil {
-		slog.Error("failed to build kubernetes config", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("building kubernetes config: %w", err)
 	}
 
-	client, err := kubernetes.NewForConfig(k8sConfig)
+	client, err := kubernetes.NewForConfig(k8sCfg)
 	if err != nil {
-		slog.Error("failed to create kubernetes client", "error", err)
-		os.Exit(1)
+		return fmt.Errorf("creating kubernetes client: %w", err)
 	}
+
+	tr := testkit.BuildRunner(os.Getenv)
+	loadSup := loadkit.NewSupervisor()
 
 	orch := orchestrator.New()
-
-	if err := registerModules(orch, client, entries); err != nil {
-		slog.Error("failed to register modules", "error", err)
-		os.Exit(1)
+	if err := registerModules(orch, client, tr, loadSup, entries); err != nil {
+		return fmt.Errorf("registering modules: %w", err)
 	}
 
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	metricsAddr := os.Getenv("METRICS_ADDR")
+	if metricsAddr == "" {
+		metricsAddr = ":9090"
+	}
+	metricsSrv := metrics.NewServer(metricsAddr)
+	metricsSrv.Start()
+
+	ctx, stop := signal.NotifyContext(context.Background(), syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
 
 	orch.Start(ctx)
+	<-ctx.Done()
 
-	sigCh := make(chan os.Signal, 1)
-	signal.Notify(sigCh, syscall.SIGINT, syscall.SIGTERM)
-	<-sigCh
-
-	slog.Info("shutting down...")
-	cancel()
+	zap.L().Info("shutting down...")
 	orch.Stop()
+	loadSup.Stop()
+	tr.Stop()
+	metricsSrv.Shutdown(context.Background())
+
+	return nil
 }
 
-func registerModules(orch *orchestrator.Orchestrator, client kubernetes.Interface, entries module.Entries) error {
-	for kind, files := range entries {
-		for _, data := range files {
-			switch kind {
-			case kindKilling:
-				cfg, err := killing.ParseConfig(data)
-				if err != nil {
-					return fmt.Errorf("invalid killing config: %w", err)
-				}
-				orch.Register(killing.New(client, cfg))
+func registerModules(orch *orchestrator.Orchestrator, client kubernetes.Interface, runner *testkit.Runner, loadSup *loadkit.Supervisor, entries config.Entries) error {
+	seen := make(map[string]struct{})
+	for kind, docs := range entries {
+		build, ok := builders[kind]
+		if !ok {
+			return fmt.Errorf("unknown module kind: %s", kind)
+		}
 
-			case kindRollout:
-				cfg, err := rollout.ParseConfig(data)
-				if err != nil {
-					return fmt.Errorf("invalid rollout config: %w", err)
-				}
-				orch.Register(rollout.New(client, cfg))
-
-			default:
-				return fmt.Errorf("unknown experiment kind: %s", kind)
+		for _, data := range docs {
+			m, err := build(client, data)
+			if err != nil {
+				return err
 			}
+			if _, dup := seen[m.Name()]; dup {
+				return fmt.Errorf("duplicate module name %q: each module must have a unique name", m.Name())
+			}
+			seen[m.Name()] = struct{}{}
+
+			cc, err := config.ParseCrossCutting(data, m.Schedule().Interval)
+			if err != nil {
+				return fmt.Errorf("module %q: %w", m.Name(), err)
+			}
+
+			testMw, err := testkit.NewMiddleware(runner, cc.Testing)
+			if err != nil {
+				return fmt.Errorf("module %q: %w", m.Name(), err)
+			}
+
+			loadMw := loadkit.NewMiddleware(loadSup, cc.Load)
+
+			orch.Register(testMw(loadMw(m)))
 		}
 	}
 	return nil

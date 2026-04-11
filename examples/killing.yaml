@@ -1,0 +1,76 @@
+# Killing module — randomly kills ONE matching pod per tick.
+#
+# Use this for steady-state "pet killer" chaos: it picks a single random victim
+# among the pods matched below and respects `minAvailable` so you never drain a
+# workload below a safety floor.
+
+kind: Killing
+
+# Human-readable identifier for this module instance. Appears in every log
+# line produced by the module so you can tell multiple instances apart
+# (e.g. "kill-api" vs "kill-worker"). Required.
+name: kill-my-app
+
+# Metadata block — identifies where the module acts. Currently only
+# `namespace` is supported but this leaves room for future labels/annotations.
+metadata:
+  namespace: default
+
+# Scenario block — describes the chaos action itself.
+scenario:
+  # How often a victim is picked. Go duration string: "30s", "5m", "1h"...
+  # `interval` and `cron` are mutually exclusive — pick one.
+  interval: 60s
+
+  # Alternative to `interval`: standard 5-field cron expression.
+  # cron: "*/5 * * * *"
+
+  # Delay before the very first kill after the scenario starts.
+  # Must be strictly less than `interval`. Ignored when using `cron`.
+  # Default: 0 (first kill at t=interval).
+  # wait: 10s
+
+  # Minimum number of matching pods that must stay alive. If killing one pod
+  # would drop the pool below this floor, the tick is a no-op.
+  minAvailable: 1
+
+  # If true, log what WOULD be killed without touching the API. Great for
+  # validating a new config on a real cluster before arming it.
+  # Default: false
+  dryRun: false
+
+  # How the pod is removed:
+  #   - evict  (default): uses the Eviction API — respects PodDisruptionBudgets.
+  #   - delete: hard delete, bypasses PDBs.
+  strategy: evict
+
+  # Matchers select the candidate pool. You can combine several: the module
+  # takes the UNION of matching pods. Pick whichever fits your target.
+  matchers:
+    # 1) Label selector — all pods carrying these labels (AND'd together).
+    labels:
+      app: my-app
+
+    # 2) Exact pod name — targets a single pod by name.
+    # podName: my-pod-abc123
+
+    # 3) Workload owners — resolves selector labels then lists pods.
+    # deploymentName: my-deployment
+    # daemonsetName: my-daemonset
+    # statefulsetName: my-statefulset
+
+# Optional post-run verification. When present, after every tick the module
+# defers a query to the configured backend and records the result on the
+# `chaos_test_success{name="<module name>"}` gauge (1 = pass, 0 = fail).
+#
+# The testing.specs.wait cannot exceed the scenario interval above.
+# testing:
+#   client: grafana
+#   specs:
+#     datasourceKind: prometheus       # default: prometheus
+#     datasourceId: my-ds-uid
+#     query: sum(container_memory_usage{service_name="my-app"})
+#     wait: 30s                         # default: 1m — must be <= scenario.interval
+#     timeWindow: 10m                   # default: 10m — prometheus lookback
+#     operator: inf                     # eq | neq | inf | sup  (default: eq)
+#     threshold: 100

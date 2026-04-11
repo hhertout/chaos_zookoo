@@ -1,0 +1,92 @@
+image:
+  repository: "neryolab/chaos-zookoo"
+  tag: "0.1.0"
+
+# ServiceAccount used by the pod.
+# create: true  → the chart creates the SA (no Role/RoleBinding — add them separately).
+# create: false → bring your own SA; name defaults to "default" when empty.
+serviceAccount:
+  create: false
+  name: ""
+
+# Kubernetes API server credentials (stored in a Secret by the chart).
+# Prefer --set-string or a Sealed Secret over committing plain values.
+k8s:
+  host: ""
+  clusterCert: ""  # base64-encoded CA certificate
+  token: ""        # ServiceAccount bearer token
+
+# Additional env vars injected into the chaos_zookoo container.
+# Required when any scenario uses a testing: block (testkit middleware):
+#   - GRAFANA_URL   base URL of your Grafana instance
+#   - GRAFANA_TOKEN service-account token (use secretKeyRef, not plain value)
+extraEnv: []
+# - name: GRAFANA_URL
+#   value: "https://grafana.example.com"
+# - name: GRAFANA_TOKEN
+#   valueFrom:
+#     secretKeyRef:
+#       name: chaos-zookoo-grafana
+#       key: GRAFANA_TOKEN
+
+# Kubernetes Secrets created in the release namespace.
+# Use this to inject sensitive values (e.g. GRAFANA_TOKEN) without storing
+# them as plain text. Reference them in extraEnv via secretKeyRef.
+extraSecrets: []
+# - name: chaos-zookoo-grafana
+#   stringData:
+#     GRAFANA_TOKEN: "glsa_xxxxxxxxxxxx"
+
+# Extra sidecars, volumes, and volume mounts appended to the pod spec.
+extraContainers: []
+extraVolumes: []
+extraVolumeMounts: []
+
+resources:
+  limits:
+    cpu: 100m
+    memory: 128Mi
+  requests:
+    cpu: 100m
+    memory: 128Mi
+
+# Optional liveness / readiness probes. Left empty by default.
+readinessProbe: {}
+livenessProbe: {}
+
+monitoring:
+  prometheus:
+    # Port exposed by the container for /metrics scraping (maps to METRICS_ADDR).
+    port: 9090
+  exporter:
+    # Set to true to sidecar a Grafana Alloy instance that forwards metrics via OTLP.
+    enabled: false
+    scrapeInterval: 30s
+    image:
+      repository: "grafana/alloy"
+      tag: "latest"
+      pullPolicy: IfNotPresent
+    endpoint:
+      url: "http://localhost:4317"  # OTLP gRPC collector endpoint
+      insecure: false
+    resources:
+      limits:
+        cpu: 300m
+        memory: 256Mi
+      requests:
+        cpu: 100m
+        memory: 128Mi
+
+# Chaos scenarios concatenated into the ConfigMap at /app/config.yaml.
+# Each item is a scenario object; the chart separates them with ---.
+# Note: keys are rendered in alphabetical order (cosmetic only).
+configs: []
+# - kind: Killing
+#   name: kill-frontend
+#   namespace: production
+#   schedule:
+#     interval: 5m
+#   selector:
+#     labels:
+#       app: frontend
+#   minAvailable: 2
