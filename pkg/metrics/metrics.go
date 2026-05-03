@@ -14,9 +14,11 @@ import (
 
 // Label name constants used across metric vectors.
 const (
-	labelName   = "name"
-	labelKind   = "kind"
-	labelMethod = "method"
+	labelName      = "name"
+	labelKind      = "kind"
+	labelMethod    = "method"
+	labelURL       = "url"
+	labelNamespace = "namespace"
 )
 
 // ChaosTestSuccess reports the outcome of the last chaos test for a module.
@@ -34,7 +36,7 @@ var ChaosLoadingHttpActive = prometheus.NewGaugeVec(
 		Name: "chaos_loading_http_active",
 		Help: "Whether the load test is active (1) or not.",
 	},
-	[]string{labelName, labelMethod, "url"},
+	[]string{labelName, labelMethod, labelURL},
 )
 
 // ChaosLoadRequestsTotal counts every HTTP request issued by a load burst.
@@ -43,7 +45,7 @@ var ChaosLoadRequestsTotal = prometheus.NewCounterVec(
 		Name: "chaos_load_requests_total",
 		Help: "Total HTTP requests fired by a load burst.",
 	},
-	[]string{labelName, labelMethod, "url", "status"},
+	[]string{labelName, labelMethod, labelURL, "status"},
 )
 
 // ChaosLoadRequestDuration observes wall-clock latency of each load request.
@@ -53,7 +55,7 @@ var ChaosLoadRequestDuration = prometheus.NewHistogramVec(
 		Help:    "Latency of HTTP requests fired by a load burst.",
 		Buckets: prometheus.DefBuckets,
 	},
-	[]string{labelName, labelMethod, "url"},
+	[]string{labelName, labelMethod, labelURL},
 )
 
 // ── Module observability ─────────────────────────────────────────────────────
@@ -66,7 +68,7 @@ var ChaosModuleInfo = prometheus.NewGaugeVec(
 		Name: "chaos_module_info",
 		Help: "Static gauge (value=1) exposing module metadata as labels.",
 	},
-	[]string{labelName, labelKind, "namespace", "schedule_type", "schedule_value"},
+	[]string{labelName, labelKind, labelNamespace, "schedule_type", "schedule_value"},
 )
 
 // ChaosModuleRunsTotal counts module executions labelled by outcome.
@@ -75,7 +77,7 @@ var ChaosModuleRunsTotal = prometheus.NewCounterVec(
 		Name: "chaos_module_runs_total",
 		Help: "Total number of module executions, by status (success|error).",
 	},
-	[]string{labelName, labelKind, "namespace", "status"},
+	[]string{labelName, labelKind, labelNamespace, "status"},
 )
 
 // ChaosModuleLastRunTimestamp is the Unix timestamp of the last module execution.
@@ -84,7 +86,7 @@ var ChaosModuleLastRunTimestamp = prometheus.NewGaugeVec(
 		Name: "chaos_module_last_run_timestamp",
 		Help: "Unix timestamp of the last module execution.",
 	},
-	[]string{labelName, labelKind, "namespace"},
+	[]string{labelName, labelKind, labelNamespace},
 )
 
 // ChaosModuleRunDuration observes how long each module Run() takes.
@@ -94,7 +96,7 @@ var ChaosModuleRunDuration = prometheus.NewHistogramVec(
 		Help:    "Wall-clock duration of each module Run() call.",
 		Buckets: prometheus.DefBuckets,
 	},
-	[]string{labelName, labelKind, "namespace"},
+	[]string{labelName, labelKind, labelNamespace},
 )
 
 // ChaosPodsAffectedTotal counts pods killed or restarted by a module.
@@ -103,7 +105,7 @@ var ChaosPodsAffectedTotal = prometheus.NewCounterVec(
 		Name: "chaos_pods_affected_total",
 		Help: "Total pods killed or restarted by a chaos module.",
 	},
-	[]string{labelName, labelKind, "namespace"},
+	[]string{labelName, labelKind, labelNamespace},
 )
 
 func init() {

@@ -51,9 +51,13 @@ func (r *Runner) Run(ctx context.Context) error {
 		zap.Duration("duration", r.spec.duration),
 	)
 
-	transport := http.DefaultTransport
+	transport := http.DefaultTransport.(*http.Transport).Clone()
 	if r.spec.SkipTLSVerify {
-		transport = &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}} //nolint:gosec
+		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true} // #nosec G402 -- explicit opt-in for internal/self-signed endpoints
+		zap.L().Warn("loadkit TLS verification disabled",
+			zap.String("name", r.name),
+			zap.String("url", url),
+		)
 	}
 	client := &http.Client{Timeout: perRequestTimeout, Transport: transport}
 

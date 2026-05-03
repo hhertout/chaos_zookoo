@@ -2,7 +2,7 @@ BINARY_NAME := chaos_zookoo
 BUILD_DIR := bin
 CMD_PATH := ./cmd/chaos_zookoo
 
-.PHONY: all build run test lint fmt vet vuln tidy clean check
+.PHONY: all build run test lint fmt vet vuln gosec tidy clean check
 
 all: check build
 
@@ -29,6 +29,9 @@ vet:
 vuln:
 	govulncheck ./...
 
+gosec:
+	gosec -exclude-generated ./...
+
 ## Tests
 test:
 	go test -v -race ./...
@@ -43,4 +46,4 @@ tidy:
 	go mod tidy
 
 ## All checks (CI-friendly)
-check: tidy fmt vet lint test
+check: tidy fmt vet lint vuln gosec test
