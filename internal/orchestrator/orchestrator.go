@@ -12,6 +12,12 @@ import (
 	"go.uber.org/zap"
 )
 
+const (
+	scheduleOnce     = "once"
+	scheduleCron     = "cron"
+	schedulePeriodic = "periodic"
+)
+
 type scheduledModule struct {
 	mu       sync.Mutex // serializes concurrent executions of the same module
 	module   module.ChaosModule
@@ -76,7 +82,7 @@ func (o *Orchestrator) runLoop(ctx context.Context, sm *scheduledModule) {
 	case module.ScheduleOnce:
 		zap.L().Info("module scheduled",
 			zap.String("module", sm.module.Name()),
-			zap.String("mode", "once"),
+			zap.String("mode", scheduleOnce),
 			zap.Duration("wait", sm.schedule.InitialDelay),
 		)
 		if !o.waitInitialDelay(ctx, sm.schedule.InitialDelay) {
@@ -87,7 +93,7 @@ func (o *Orchestrator) runLoop(ctx context.Context, sm *scheduledModule) {
 	case module.ScheduleCron:
 		zap.L().Info("module scheduled",
 			zap.String("module", sm.module.Name()),
-			zap.String("mode", "cron"),
+			zap.String("mode", scheduleCron),
 			zap.String("expr", sm.schedule.CronExpr),
 		)
 		o.runCronLoop(ctx, sm)
@@ -95,7 +101,7 @@ func (o *Orchestrator) runLoop(ctx context.Context, sm *scheduledModule) {
 	default: // SchedulePeriodic
 		zap.L().Info("module scheduled",
 			zap.String("module", sm.module.Name()),
-			zap.String("mode", "periodic"),
+			zap.String("mode", schedulePeriodic),
 			zap.Duration("interval", sm.schedule.Interval),
 			zap.Duration("wait", sm.schedule.InitialDelay),
 		)
@@ -197,10 +203,10 @@ func (o *Orchestrator) execute(ctx context.Context, sm *scheduledModule) {
 func scheduleLabel(s module.Schedule) (schedType, schedValue string) {
 	switch s.Mode {
 	case module.ScheduleOnce:
-		return "once", "once"
+		return scheduleOnce, scheduleOnce
 	case module.ScheduleCron:
-		return "cron", s.CronExpr
+		return scheduleCron, s.CronExpr
 	default:
-		return "periodic", fmt.Sprintf("%v", s.Interval)
+		return schedulePeriodic, fmt.Sprintf("%v", s.Interval)
 	}
 }

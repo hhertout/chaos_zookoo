@@ -9,8 +9,9 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
+
+	uberatomic "go.uber.org/atomic"
 
 	"github.com/hhertout/chaos_zookoo/pkg/metrics"
 	"go.uber.org/zap"
@@ -22,7 +23,7 @@ const perRequestTimeout = 30 * time.Second
 type Runner struct {
 	name       string
 	spec       *Spec
-	lastErrLog atomic.Int64 // unix nanoseconds of last 4xx/5xx log
+	lastErrLog uberatomic.Int64 // unix nanoseconds of last 4xx/5xx log
 }
 
 // NewRunner builds a runner from a module name and a validated spec.

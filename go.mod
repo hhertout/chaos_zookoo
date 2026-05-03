@@ -13,6 +13,8 @@ require (
 	k8s.io/client-go v0.36.0
 )
 
+require go.uber.org/atomic v1.11.0
+
 require (
 	github.com/adhocore/gronx v1.19.6
 	github.com/beorn7/perks v1.0.1 // indirect
