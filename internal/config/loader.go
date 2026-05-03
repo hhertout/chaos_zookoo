@@ -3,6 +3,7 @@ package config
 import (
 	"bytes"
 	"fmt"
+	"io"
 	"os"
 	"path/filepath"
 	"strings"
@@ -31,7 +32,19 @@ func LoadEntries(path string) (Entries, error) {
 }
 
 func loadFile(path string) (Entries, error) {
-	data, err := os.ReadFile(path)
+	root, err := os.OpenRoot(filepath.Dir(path))
+	if err != nil {
+		return nil, fmt.Errorf("opening config root: %w", err)
+	}
+	defer root.Close()
+
+	f, err := root.Open(filepath.Base(path))
+	if err != nil {
+		return nil, fmt.Errorf("reading %s: %w", path, err)
+	}
+	defer f.Close()
+
+	data, err := io.ReadAll(f)
 	if err != nil {
 		return nil, fmt.Errorf("reading %s: %w", path, err)
 	}
@@ -49,13 +62,23 @@ func loadDir(dir string) (Entries, error) {
 		return nil, fmt.Errorf("reading config dir %s: %w", dir, err)
 	}
 
+	root, err := os.OpenRoot(dir)
+	if err != nil {
+		return nil, fmt.Errorf("opening config root: %w", err)
+	}
+	defer root.Close()
+
 	entries := make(Entries)
 	for _, f := range files {
 		if f.IsDir() || !isYAML(f.Name()) {
 			continue
 		}
-		path := filepath.Join(dir, f.Name())
-		data, err := os.ReadFile(path)
+		fh, err := root.Open(f.Name())
+		if err != nil {
+			return nil, fmt.Errorf("reading %s: %w", f.Name(), err)
+		}
+		data, err := io.ReadAll(fh)
+		_ = fh.Close()
 		if err != nil {
 			return nil, fmt.Errorf("reading %s: %w", f.Name(), err)
 		}

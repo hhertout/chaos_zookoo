@@ -125,7 +125,7 @@ func (r *Runner) fire(ctx context.Context, client *http.Client) {
 		return
 	}
 	_, _ = io.Copy(io.Discard, resp.Body)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	class := statusClass(resp.StatusCode)
 	if resp.StatusCode >= 400 {
