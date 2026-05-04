@@ -9,8 +9,9 @@ import (
 	"strconv"
 	"strings"
 	"sync"
-	"sync/atomic"
 	"time"
+
+	uberatomic "go.uber.org/atomic"
 
 	"github.com/hhertout/chaos_zookoo/pkg/metrics"
 	"go.uber.org/zap"
@@ -22,7 +23,7 @@ const perRequestTimeout = 30 * time.Second
 type Runner struct {
 	name       string
 	spec       *Spec
-	lastErrLog atomic.Int64 // unix nanoseconds of last 4xx/5xx log
+	lastErrLog uberatomic.Int64 // unix nanoseconds of last 4xx/5xx log
 }
 
 // NewRunner builds a runner from a module name and a validated spec.
@@ -50,9 +51,13 @@ func (r *Runner) Run(ctx context.Context) error {
 		zap.Duration("duration", r.spec.duration),
 	)
 
-	transport := http.DefaultTransport
+	transport := http.DefaultTransport.(*http.Transport).Clone()
 	if r.spec.SkipTLSVerify {
-		transport = &http.Transport{TLSClientConfig: &tls.Config{InsecureSkipVerify: true}} //nolint:gosec
+		transport.TLSClientConfig = &tls.Config{InsecureSkipVerify: true} // #nosec G402 -- explicit opt-in for internal/self-signed endpoints
+		zap.L().Warn("loadkit TLS verification disabled",
+			zap.String("name", r.name),
+			zap.String("url", url),
+		)
 	}
 	client := &http.Client{Timeout: perRequestTimeout, Transport: transport}
 
@@ -125,7 +130,7 @@ func (r *Runner) fire(ctx context.Context, client *http.Client) {
 		return
 	}
 	_, _ = io.Copy(io.Discard, resp.Body)
-	resp.Body.Close()
+	_ = resp.Body.Close()
 
 	class := statusClass(resp.StatusCode)
 	if resp.StatusCode >= 400 {

@@ -15,7 +15,7 @@ it wraps. Useful to validate behavior **under concurrent load** — e.g.
 load:
   vus: 10                    # required — number of parallel virtual users
   duration: 30s              # required — how long the burst lasts
-  skipTlsVerify: false       # optional — disable TLS certificate verification (default false)
+  skipTlsVerify: false       # optional — disable TLS certificate verification for internal/self-signed endpoints
   requests:
     method: GET              # required — GET or POST
     url: https://my-app.example.com/healthz   # required
@@ -30,7 +30,7 @@ load:
 | --------------------------- | ---------- | ----------------- | --------------------------------------------------------------------------- |
 | `load.vus`                  | integer    | —                 | Required, `> 0`. Number of parallel goroutines firing requests.             |
 | `load.duration`             | duration   | —                 | Required, `> 0`. Must be `< scenario.interval` if the module is periodic.   |
-| `load.skipTlsVerify`        | boolean    | `false`           | Disables TLS certificate verification. Use for self-signed certs or internal CAs. |
+| `load.skipTlsVerify`        | boolean    | `false`           | Disables TLS verification. Use only for internal/self-signed endpoints you explicitly trust. |
 | `load.requests.method`      | enum       | —                 | Required. `GET` or `POST`.                                                  |
 | `load.requests.url`         | URL        | —                 | Required. Must start with `http://` or `https://`.                          |
 | `load.requests.interval`    | duration   | `100ms`           | Per-VU sleep between two requests. Must be `> 0`.                           |
@@ -79,3 +79,6 @@ join naturally with `chaos_test_success`.
 
 These are deliberate tradeoffs — `loadkit` is meant to generate
 **realistic-enough** load during chaos, not to replace k6 / Gatling.
+
+If `skipTlsVerify` is enabled, `loadkit` logs a warning and skips server
+certificate verification for that endpoint only.

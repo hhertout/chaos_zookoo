@@ -672,19 +672,19 @@ func TestScheduleLabel(t *testing.T) {
 		{
 			name:      "once",
 			schedule:  module.Schedule{Mode: module.ScheduleOnce},
-			wantType:  "once",
-			wantValue: "once",
+			wantType:  scheduleOnce,
+			wantValue: scheduleOnce,
 		},
 		{
 			name:      "cron",
 			schedule:  module.Schedule{Mode: module.ScheduleCron, CronExpr: "*/5 * * * *"},
-			wantType:  "cron",
+			wantType:  scheduleCron,
 			wantValue: "*/5 * * * *",
 		},
 		{
 			name:      "periodic",
 			schedule:  module.Schedule{Mode: module.SchedulePeriodic, Interval: 30 * time.Second},
-			wantType:  "periodic",
+			wantType:  schedulePeriodic,
 			wantValue: fmt.Sprintf("%v", 30*time.Second),
 		},
 	}

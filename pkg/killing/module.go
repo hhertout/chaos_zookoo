@@ -2,8 +2,9 @@ package killing
 
 import (
 	"context"
+	cryptorand "crypto/rand"
 	"fmt"
-	"math/rand/v2"
+	"math/big"
 	"time"
 
 	"github.com/hhertout/chaos_zookoo/pkg/matchers"
@@ -125,7 +126,11 @@ func (m *Module) Run(ctx context.Context) error {
 		return nil
 	}
 
-	target := pods[rand.IntN(len(pods))]
+	targetIndex, err := cryptorand.Int(cryptorand.Reader, big.NewInt(int64(len(pods))))
+	if err != nil {
+		return fmt.Errorf("selecting pod target: %w", err)
+	}
+	target := pods[targetIndex.Int64()]
 	zap.L().Info("pod killed",
 		zap.String("kind", "killing"),
 		zap.String("name", m.name),
