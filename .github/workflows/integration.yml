@@ -127,7 +127,7 @@ jobs:
         run: gofumpt -l . | grep . && exit 1 || exit 0
 
       - name: Run golangci-lint
-        uses: golangci/golangci-lint-action@v8
+        uses: golangci/golangci-lint-action@v9
         with:
           version: latest
 
