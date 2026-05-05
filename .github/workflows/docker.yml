@@ -1,0 +1,100 @@
+name: 🐳 Deploy - DockerHub
+
+on:
+  push:
+    branches: ["main"]
+
+env:
+  REGISTRY: docker.io
+  IMAGE_NAME: neryolo/chaos-zookoo
+
+jobs:
+  prepare:
+    runs-on: ubuntu-latest
+    outputs:
+      tag: ${{ steps.get_tag.outputs.tag }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Get latest git tag
+        id: get_tag
+        run: |
+          git fetch --tags --prune
+          latest_tag=$(git describe --tags --abbrev=0 2>/dev/null || echo "")
+          echo "tag=$latest_tag" >> $GITHUB_OUTPUT
+
+  build:
+    runs-on: ubuntu-latest
+    needs: prepare
+    strategy:
+      matrix:
+        include:
+          - dockerfile: .docker/deb.dockerfile
+            suffix: ""
+            latest_tag: "latest"
+            nightly_tag: "nightly"
+          - dockerfile: .docker/alpine.dockerfile
+            suffix: "-alpine"
+            latest_tag: "latest-alpine"
+            nightly_tag: "nightly-alpine"
+          - dockerfile: .docker/ubuntu.dockerfile
+            suffix: "-ubuntu"
+            latest_tag: "latest-ubuntu"
+            nightly_tag: "nightly-ubuntu"
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up QEMU
+        uses: docker/setup-qemu-action@v3
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Login to Docker Hub
+        uses: docker/login-action@v3
+        with:
+          username: neryolo
+          password: ${{ secrets.DOCKER_HUB_ACCESS_TOKEN }}
+
+      # Build and push - nightly - latest and versioned builded at every push on main (like unstable versions), ahead of a LTS release
+      - name: Build and push - nightly
+        uses: docker/build-push-action@v6
+        with:
+          context: ./
+          file: ${{ matrix.dockerfile }}
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ env.IMAGE_NAME }}:${{ matrix.nightly_tag }}
+          cache-from: type=gha,scope=${{ matrix.nightly_tag }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.nightly_tag }}
+
+      # Build and push - latest and versioned only if tag is present - override the
+      # previous latest and versioned builded at every push on main with the new one
+      - name: Build and push - latest
+        if: needs.prepare.outputs.tag != ''
+        uses: docker/build-push-action@v6
+        with:
+          context: ./
+          file: ${{ matrix.dockerfile }}
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ env.IMAGE_NAME }}:${{ matrix.latest_tag }}
+          cache-from: type=gha,scope=${{ matrix.latest_tag }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.latest_tag }}
+
+      # Build and push - versioned only if tag is present with the specific tag as tag
+      - name: Build and push - versioned
+        if: needs.prepare.outputs.tag != ''
+        uses: docker/build-push-action@v6
+        with:
+          context: ./
+          file: ${{ matrix.dockerfile }}
+          push: true
+          platforms: linux/amd64,linux/arm64
+          tags: ${{ env.IMAGE_NAME }}:${{ needs.prepare.outputs.tag }}${{ matrix.suffix }}
+          cache-from: type=gha,scope=${{ matrix.latest_tag }}
+          cache-to: type=gha,mode=max,scope=${{ matrix.latest_tag }}
