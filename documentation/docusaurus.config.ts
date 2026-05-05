@@ -1,99 +1,103 @@
-import {themes as prismThemes} from 'prism-react-renderer';
-import type {Config} from '@docusaurus/types';
-import type * as Preset from '@docusaurus/preset-classic';
+import { themes as prismThemes } from "prism-react-renderer";
+import type { Config } from "@docusaurus/types";
+import type * as Preset from "@docusaurus/preset-classic";
 
 const config: Config = {
-  title: 'chaos_zookoo',
-  tagline: 'RBAC-native Kubernetes chaos engineering, driven from the API server',
-  favicon: 'img/zookoo_tight.png',
+  title: "chaos_zookoo",
+  tagline:
+    "RBAC-native Kubernetes chaos engineering, driven from the API server",
+  favicon: "img/zookoo_tight.png",
 
   future: {
     v4: true,
   },
 
-  url: 'https://hhertout.github.io',
-  baseUrl: '/chaos_zookoo/',
+  url: "https://hhertout.github.io",
+  baseUrl: "/",
 
-  organizationName: 'hhertout',
-  projectName: 'chaos_zookoo',
+  organizationName: "hhertout",
+  projectName: "chaos_zookoo",
 
-  onBrokenLinks: 'throw',
+  onBrokenLinks: "throw",
 
   markdown: {
     hooks: {
-      onBrokenMarkdownLinks: 'warn',
+      onBrokenMarkdownLinks: "warn",
     },
   },
 
   i18n: {
-    defaultLocale: 'en',
-    locales: ['en'],
+    defaultLocale: "en",
+    locales: ["en"],
   },
 
   presets: [
     [
-      'classic',
+      "classic",
       {
         docs: {
-          sidebarPath: './sidebars.ts',
+          sidebarPath: "./sidebars.ts",
           editUrl:
-            'https://github.com/hhertout/chaos_zookoo/tree/main/documentation/',
+            "https://github.com/hhertout/chaos_zookoo/tree/main/documentation/",
         },
         blog: false,
         theme: {
-          customCss: './src/css/custom.css',
+          customCss: "./src/css/custom.css",
         },
       } satisfies Preset.Options,
     ],
   ],
 
   themeConfig: {
-    image: 'img/chaos-zookoo-social-card.jpg',
+    image: "img/chaos-zookoo-social-card.jpg",
     colorMode: {
       respectPrefersColorScheme: true,
     },
     navbar: {
-      title: 'zookoo',
+      title: "zookoo",
       logo: {
-        alt: 'zookoo logo',
-        src: 'img/zookoo_tight.png',
+        alt: "zookoo logo",
+        src: "img/zookoo_tight.png",
       },
       items: [
         {
-          type: 'docSidebar',
-          sidebarId: 'docsSidebar',
-          position: 'left',
-          label: 'Docs',
+          type: "docSidebar",
+          sidebarId: "docsSidebar",
+          position: "left",
+          label: "Docs",
         },
         {
-          href: 'https://github.com/hhertout/chaos_zookoo',
-          label: 'GitHub',
-          position: 'right',
+          href: "https://github.com/hhertout/chaos_zookoo",
+          label: "GitHub",
+          position: "right",
         },
       ],
     },
     footer: {
-      style: 'dark',
+      style: "dark",
       links: [
         {
-          title: 'Docs',
+          title: "Docs",
           items: [
-            {label: 'Introduction', to: '/docs/intro'},
-            {label: 'Getting started', to: '/docs/getting-started/installation'},
-            {label: 'Modules', to: '/docs/modules/overview'},
-            {label: 'Middlewares', to: '/docs/middlewares/overview'},
+            { label: "Introduction", to: "/docs/intro" },
+            {
+              label: "Getting started",
+              to: "/docs/getting-started/installation",
+            },
+            { label: "Modules", to: "/docs/modules/overview" },
+            { label: "Middlewares", to: "/docs/middlewares/overview" },
           ],
         },
         {
-          title: 'Project',
+          title: "Project",
           items: [
             {
-              label: 'GitHub',
-              href: 'https://github.com/hhertout/chaos_zookoo',
+              label: "GitHub",
+              href: "https://github.com/hhertout/chaos_zookoo",
             },
             {
-              label: 'Issues',
-              href: 'https://github.com/hhertout/chaos_zookoo/issues',
+              label: "Issues",
+              href: "https://github.com/hhertout/chaos_zookoo/issues",
             },
           ],
         },
@@ -103,7 +107,7 @@ const config: Config = {
     prism: {
       theme: prismThemes.github,
       darkTheme: prismThemes.vsDark,
-      additionalLanguages: ['bash', 'yaml', 'go', 'toml'],
+      additionalLanguages: ["bash", "yaml", "go", "toml"],
     },
   } satisfies Preset.ThemeConfig,
 };
