@@ -36,7 +36,7 @@ jobs:
             suffix: ""
             latest_tag: "latest"
             nightly_tag: "nightly"
-          - dockerfile: .docker/alpine.dockerfile
+          - dockerfile: Dockerfile
             suffix: "-alpine"
             latest_tag: "latest-alpine"
             nightly_tag: "nightly-alpine"
