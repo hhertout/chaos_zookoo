@@ -5,7 +5,7 @@ import type * as Preset from '@docusaurus/preset-classic';
 const config: Config = {
   title: 'chaos_zookoo',
   tagline: 'RBAC-native Kubernetes chaos engineering, driven from the API server',
-  favicon: 'img/logo_2.png',
+  favicon: 'img/zookoo_tight.png',
 
   future: {
     v4: true,
@@ -56,7 +56,7 @@ const config: Config = {
       title: 'zookoo',
       logo: {
         alt: 'zookoo logo',
-        src: 'img/logo_2.png',
+        src: 'img/zookoo_tight.png',
       },
       items: [
         {
