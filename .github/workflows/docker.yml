@@ -36,14 +36,6 @@ jobs:
             suffix: ""
             latest_tag: "latest"
             nightly_tag: "nightly"
-          - dockerfile: Dockerfile
-            suffix: "-alpine"
-            latest_tag: "latest-alpine"
-            nightly_tag: "nightly-alpine"
-          - dockerfile: .docker/ubuntu.dockerfile
-            suffix: "-ubuntu"
-            latest_tag: "latest-ubuntu"
-            nightly_tag: "nightly-ubuntu"
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
