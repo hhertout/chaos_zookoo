@@ -32,7 +32,7 @@ jobs:
     strategy:
       matrix:
         include:
-          - dockerfile: .docker/deb.dockerfile
+          - dockerfile: Dockerfile
             suffix: ""
             latest_tag: "latest"
             nightly_tag: "nightly"
