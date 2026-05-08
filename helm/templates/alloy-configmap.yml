@@ -33,10 +33,10 @@ data:
         metric_statements {
             context = "resource"
             statements = [
-                `set(attributes["k8s.namespace.name"], ` + sys.env("K8S_NAMESPACE") + `)`,
-                `set(attributes["k8s.pod.name"], ` + sys.env("K8S_POD_NAME") + `)`,
-                `set(attributes["k8s.node.name"], ` + sys.env("K8S_NODE_NAME") + `)`,
-                `set(attributes["host"], ` + sys.env("HOSTNAME") + `)`,
+                "set(attributes[\"k8s.namespace.name\"], \"" + sys.env("K8S_NAMESPACE") + "\")",
+                "set(attributes[\"k8s.pod.name\"], \"" + sys.env("K8S_POD_NAME") + "\")",
+                "set(attributes[\"k8s.node.name\"], \"" + sys.env("K8S_NODE_NAME") + "\")",
+                "set(attributes[\"host.name\"], \"" + sys.env("HOSTNAME") + "\")",
             ]
         }
 
@@ -48,7 +48,9 @@ data:
     otelcol.exporter.otlp "default" {
         client {
             endpoint = sys.env("OTEL_EXPORTER_OTLP_ENDPOINT")
-            insecure = {{ .Values.monitoring.exporter.endpoint.insecure | default false }}
+            tls {
+                insecure = {{ .Values.monitoring.exporter.endpoint.insecure | default false }}
+            }
         }
     }
 {{- end }}
