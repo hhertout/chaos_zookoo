@@ -50,7 +50,7 @@ func NewMiddleware(sup *Supervisor, spec *Spec) module.Middleware {
 		return func(m module.ChaosModule) module.ChaosModule { return m }
 	}
 	return func(inner module.ChaosModule) module.ChaosModule {
-		runner := NewRunner(inner.Name(), spec)
+		runner := NewRunner(inner.Name(), inner.Namespace(), spec)
 		return &wrapped{inner: inner, sup: sup, runner: runner}
 	}
 }

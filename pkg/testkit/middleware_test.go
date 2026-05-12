@@ -35,8 +35,9 @@ func (m *mockQuerier) Query(_ context.Context, _ Details) (float64, error) {
 }
 
 // metricValue reads the current value of ChaosTestSuccess for a given module name.
+// Tests use the "default" namespace throughout.
 func metricValue(name string) float64 {
-	return testutil.ToFloat64(metrics.ChaosTestSuccess.WithLabelValues(name))
+	return testutil.ToFloat64(metrics.ChaosTestSuccess.WithLabelValues(name, "default"))
 }
 
 // builtSpec builds and validates a Spec from a list of Details, failing on error.
@@ -51,6 +52,7 @@ func builtSpec(t *testing.T, details ...Details) *Spec {
 
 func TestRunTest_AllPass_MetricIsOne(t *testing.T) {
 	name := "all-pass"
+	namespace := "default"
 	q := &mockQuerier{results: []queryResult{{value: 1}, {value: 42}}}
 	r := NewRunner(q)
 
@@ -59,7 +61,7 @@ func TestRunTest_AllPass_MetricIsOne(t *testing.T) {
 		validDetails(func(d *Details) { d.Operator = OperatorSup; d.Threshold = 10 }),
 	)
 
-	r.runTest(context.Background(), name, spec)
+	r.runTest(context.Background(), name, namespace, spec)
 
 	assert.Equal(t, 1.0, metricValue(name))
 	assert.Equal(t, 2, q.callIdx, "both queries must be called")
@@ -67,6 +69,7 @@ func TestRunTest_AllPass_MetricIsOne(t *testing.T) {
 
 func TestRunTest_OneFailsFirst_MetricIsZero(t *testing.T) {
 	name := "first-fails"
+	namespace := "default"
 	q := &mockQuerier{results: []queryResult{{value: 0}, {value: 1}}}
 	r := NewRunner(q)
 
@@ -75,7 +78,7 @@ func TestRunTest_OneFailsFirst_MetricIsZero(t *testing.T) {
 		validDetails(func(d *Details) { d.Operator = OperatorEq; d.Threshold = 1 }), // 1 == 1 → pass
 	)
 
-	r.runTest(context.Background(), name, spec)
+	r.runTest(context.Background(), name, namespace, spec)
 
 	assert.Equal(t, 0.0, metricValue(name))
 	assert.Equal(t, 2, q.callIdx, "all queries run even if one fails")
@@ -83,6 +86,7 @@ func TestRunTest_OneFailsFirst_MetricIsZero(t *testing.T) {
 
 func TestRunTest_OneFailsLast_MetricIsZero(t *testing.T) {
 	name := "last-fails"
+	namespace := "default"
 	q := &mockQuerier{results: []queryResult{{value: 1}, {value: 0}}}
 	r := NewRunner(q)
 
@@ -91,13 +95,14 @@ func TestRunTest_OneFailsLast_MetricIsZero(t *testing.T) {
 		validDetails(func(d *Details) { d.Operator = OperatorEq; d.Threshold = 1 }), // 0 != 1 → fail
 	)
 
-	r.runTest(context.Background(), name, spec)
+	r.runTest(context.Background(), name, namespace, spec)
 
 	assert.Equal(t, 0.0, metricValue(name))
 }
 
 func TestRunTest_QueryError_MetricIsZero_ContinuesOtherTests(t *testing.T) {
 	name := "query-error"
+	namespace := "default"
 	q := &mockQuerier{results: []queryResult{
 		{err: errors.New("timeout")},
 		{value: 1},
@@ -111,7 +116,7 @@ func TestRunTest_QueryError_MetricIsZero_ContinuesOtherTests(t *testing.T) {
 		validDetails(func(d *Details) { d.Operator = OperatorEq; d.Threshold = 1 }),
 	)
 
-	r.runTest(context.Background(), name, spec)
+	r.runTest(context.Background(), name, namespace, spec)
 
 	assert.Equal(t, 0.0, metricValue(name))
 	assert.Equal(t, 3, q.callIdx, "remaining queries still run after an error")
@@ -119,6 +124,7 @@ func TestRunTest_QueryError_MetricIsZero_ContinuesOtherTests(t *testing.T) {
 
 func TestRunTest_AllQueriesError_MetricIsZero(t *testing.T) {
 	name := "all-errors"
+	namespace := "default"
 	q := &mockQuerier{results: []queryResult{
 		{err: errors.New("err1")},
 		{err: errors.New("err2")},
@@ -127,25 +133,27 @@ func TestRunTest_AllQueriesError_MetricIsZero(t *testing.T) {
 
 	spec := builtSpec(t, validDetails(), validDetails())
 
-	r.runTest(context.Background(), name, spec)
+	r.runTest(context.Background(), name, namespace, spec)
 
 	assert.Equal(t, 0.0, metricValue(name))
 }
 
 func TestRunTest_NilQuerier_MetricIsZero(t *testing.T) {
 	name := "nil-querier"
+	namespace := "default"
 	r := NewRunner(nil)
 	spec := builtSpec(t, validDetails())
 
-	r.runTest(context.Background(), name, spec)
+	r.runTest(context.Background(), name, namespace, spec)
 
 	assert.Equal(t, 0.0, metricValue(name))
 }
 
 func TestRunTest_ContextAlreadyCanceled_NoMetric(t *testing.T) {
 	name := "ctx-canceled"
+	namespace := "default"
 	// Reset any prior value by setting a known sentinel first.
-	metrics.ChaosTestSuccess.WithLabelValues(name).Set(99)
+	metrics.ChaosTestSuccess.WithLabelValues(name, namespace).Set(99)
 
 	q := &mockQuerier{results: []queryResult{{value: 1}}}
 	r := NewRunner(q)
@@ -154,7 +162,7 @@ func TestRunTest_ContextAlreadyCanceled_NoMetric(t *testing.T) {
 	ctx, cancel := context.WithCancel(context.Background())
 	cancel()
 
-	r.runTest(ctx, name, spec)
+	r.runTest(ctx, name, namespace, spec)
 
 	// Metric must not have been touched (stays at sentinel).
 	assert.Equal(t, 99.0, metricValue(name))
@@ -165,6 +173,7 @@ func TestRunTest_ContextAlreadyCanceled_NoMetric(t *testing.T) {
 
 func TestSchedule_FiresAndSetsMetric(t *testing.T) {
 	name := "schedule-fires"
+	namespace := "default"
 	q := &mockQuerier{results: []queryResult{{value: 1}}}
 	r := NewRunner(q)
 
@@ -174,7 +183,7 @@ func TestSchedule_FiresAndSetsMetric(t *testing.T) {
 		d.Threshold = 1
 	}))
 
-	r.Schedule(context.Background(), name, spec)
+	r.Schedule(context.Background(), name, namespace, spec)
 	r.wg.Wait()
 
 	assert.Equal(t, 1.0, metricValue(name))
@@ -182,14 +191,15 @@ func TestSchedule_FiresAndSetsMetric(t *testing.T) {
 
 func TestSchedule_StoppedRunner_DoesNotFire(t *testing.T) {
 	name := "stopped-runner"
-	metrics.ChaosTestSuccess.WithLabelValues(name).Set(99)
+	namespace := "default"
+	metrics.ChaosTestSuccess.WithLabelValues(name, namespace).Set(99)
 
 	q := &mockQuerier{results: []queryResult{{value: 1}}}
 	r := NewRunner(q)
 	r.Stop()
 
 	spec := builtSpec(t, validDetails(func(d *Details) { d.RawWait = "10ms" }))
-	r.Schedule(context.Background(), name, spec)
+	r.Schedule(context.Background(), name, namespace, spec)
 
 	time.Sleep(50 * time.Millisecond)
 	assert.Equal(t, 99.0, metricValue(name), "stopped runner must not update metric")
@@ -197,13 +207,14 @@ func TestSchedule_StoppedRunner_DoesNotFire(t *testing.T) {
 
 func TestStop_CancelsPendingTimers(t *testing.T) {
 	name := "stop-cancels"
-	metrics.ChaosTestSuccess.WithLabelValues(name).Set(99)
+	namespace := "default"
+	metrics.ChaosTestSuccess.WithLabelValues(name, namespace).Set(99)
 
 	q := &mockQuerier{results: []queryResult{{value: 1}}}
 	r := NewRunner(q)
 
 	spec := builtSpec(t, validDetails(func(d *Details) { d.RawWait = "10s" }))
-	r.Schedule(context.Background(), name, spec)
+	r.Schedule(context.Background(), name, namespace, spec)
 	r.Stop() // must return before the 10s timer fires
 
 	assert.Equal(t, 99.0, metricValue(name), "metric must not change after Stop")

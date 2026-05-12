@@ -52,7 +52,7 @@ func (r *Runner) HasQuerier() bool {
 
 // Schedule defers a single evaluation after spec.MaxWait(). All tests in the
 // spec run sequentially at that point, and the metric is emitted once.
-func (r *Runner) Schedule(ctx context.Context, name string, spec *Spec) {
+func (r *Runner) Schedule(ctx context.Context, name, namespace string, spec *Spec) {
 	if r == nil || spec == nil {
 		return
 	}
@@ -75,7 +75,7 @@ func (r *Runner) Schedule(ctx context.Context, name string, spec *Spec) {
 		t := timer
 		delete(r.timers, t)
 		r.mu.Unlock()
-		r.runTest(ctx, name, spec)
+		r.runTest(ctx, name, namespace, spec)
 	})
 	r.timers[timer] = struct{}{}
 	r.mu.Unlock()
@@ -115,7 +115,7 @@ func (r *Runner) forgetTimer(t *time.Timer) {
 	r.mu.Unlock()
 }
 
-func (r *Runner) runTest(ctx context.Context, name string, spec *Spec) {
+func (r *Runner) runTest(ctx context.Context, name, namespace string, spec *Spec) {
 	if err := ctx.Err(); err != nil {
 		zap.L().Debug("chaos test skipped: context canceled", zap.String("name", name))
 		return
@@ -123,7 +123,7 @@ func (r *Runner) runTest(ctx context.Context, name string, spec *Spec) {
 
 	if r.querier == nil {
 		zap.L().Warn("chaos test skipped: no querier configured", zap.String("name", name))
-		metrics.ChaosTestSuccess.WithLabelValues(name).Set(0)
+		metrics.ChaosTestSuccess.WithLabelValues(name, namespace).Set(0)
 		return
 	}
 
@@ -161,7 +161,7 @@ func (r *Runner) runTest(ctx context.Context, name string, spec *Spec) {
 	if allPassed {
 		metricValue = 1.0
 	}
-	metrics.ChaosTestSuccess.WithLabelValues(name).Set(metricValue)
+	metrics.ChaosTestSuccess.WithLabelValues(name, namespace).Set(metricValue)
 
 	zap.L().Info("chaos test suite result",
 		zap.String("name", name),
@@ -196,6 +196,6 @@ func (w *wrapped) Namespace() string         { return w.inner.Namespace() }
 func (w *wrapped) Schedule() module.Schedule { return w.inner.Schedule() }
 func (w *wrapped) Run(ctx context.Context) error {
 	err := w.inner.Run(ctx)
-	w.runner.Schedule(ctx, w.inner.Name(), w.spec)
+	w.runner.Schedule(ctx, w.inner.Name(), w.inner.Namespace(), w.spec)
 	return err
 }

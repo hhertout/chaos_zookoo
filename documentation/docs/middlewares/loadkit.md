@@ -58,17 +58,18 @@ assert on the outcome.
 
 Every request is tracked via Prometheus:
 
-| Metric                               | Type       | Labels                            |
-| ------------------------------------ | ---------- | --------------------------------- |
-| `chaos_loading_http_active`          | gauge      | `name`, `method`, `url`           |
-| `chaos_load_requests_total`          | counter    | `name`, `method`, `url`, `status` |
-| `chaos_load_request_duration_seconds`| histogram  | `name`, `method`, `url`           |
+| Metric                               | Type       | Labels                                        |
+| ------------------------------------ | ---------- | --------------------------------------------- |
+| `chaos_loading_http_active`          | gauge      | `name`, `namespace`, `method`, `url`           |
+| `chaos_load_requests_total`          | counter    | `name`, `namespace`, `method`, `url`, `status` |
+| `chaos_load_request_duration_seconds`| histogram  | `name`, `namespace`, `method`, `url`           |
 
 `status` is bucketed into `2xx` / `3xx` / `4xx` / `5xx` / `1xx` /
 `error` (`error` covers network failures and context cancellation).
 
-The `name` label is the module name — not the load config — so metrics
-join naturally with `chaos_test_success`.
+The `name` and `namespace` labels are taken from the wrapped module, so
+metrics join naturally with `chaos_test_success` and
+`chaos_module_runs_total`.
 
 ## Limitations
 

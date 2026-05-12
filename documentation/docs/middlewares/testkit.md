@@ -9,8 +9,9 @@ sidebar_position: 3
 completes, it waits a configurable delay, queries an observability backend
 (currently Grafana/Prometheus), and emits a pass/fail gauge.
 
-Put `chaos_test_success{name="<module>"}` on your chaos dashboard — it's
-the single signal that tells you "the scenario ran, and the SLO held".
+Put `chaos_test_success{name="<module>", namespace="<namespace>"}` on your
+chaos dashboard — it's the single signal that tells you "the scenario ran,
+and the SLO held".
 
 ## Config block
 

@@ -61,7 +61,7 @@ scenario:
 
 # Optional post-run verification. When present, after every tick the module
 # defers a query to the configured backend and records the result on the
-# `chaos_test_success{name="<module name>"}` gauge (1 = pass, 0 = fail).
+# `chaos_test_success{name="<module name>", namespace="<namespace>"}` gauge (1 = pass, 0 = fail).
 #
 # The testing.specs.wait cannot exceed the scenario interval above.
 # testing:
