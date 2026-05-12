@@ -48,11 +48,11 @@ scenario:
 # `chaos_test_success{name="<module name>"}` gauge (1 = pass, 0 = fail).
 # testing:
 #   client: grafana
-#   specs:
-#     datasourceKind: prometheus
-#     datasourceId: my-ds-uid
-#     query: sum(rate(http_requests_total{app="my-app",code=~"5.."}[5m]))
-#     wait: 5m
-#     timeWindow: 10m
-#     operator: inf
-#     threshold: 1
+#   specs:                          # list — one or more assertions; metric = 1 only if all pass
+#     - datasourceKind: prometheus
+#       datasourceId: my-ds-uid
+#       query: sum(rate(http_requests_total{app="my-app",code=~"5.."}[5m]))
+#       wait: 5m
+#       timeWindow: 10m
+#       operator: inf
+#       threshold: 1

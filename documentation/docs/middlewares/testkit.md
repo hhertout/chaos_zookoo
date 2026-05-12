@@ -14,17 +14,24 @@ the single signal that tells you "the scenario ran, and the SLO held".
 
 ## Config block
 
+`specs` accepts a **list of one or more assertions**. The metric is set to
+`1` only when every assertion passes; a single failure sets it to `0`.
+
 ```yaml
 testing:
   client: grafana                       # required — only "grafana" today
   specs:
-    datasourceKind: prometheus          # optional — default: prometheus
-    datasourceId: prom-uid              # required — Grafana datasource UID
-    query: sum(rate(http_requests_total{code=~"5.."}[5m]))
-    wait: 1m                            # optional — default: 1m
-    timeWindow: 10m                     # optional — default: 10m
-    operator: inf                       # optional — default: eq
-    threshold: 1                        # required for numeric operators
+    - datasourceKind: prometheus        # optional — default: prometheus
+      datasourceId: prom-uid            # required — Grafana datasource UID
+      query: sum(rate(http_requests_total{code=~"5.."}[5m]))
+      wait: 1m                          # optional — default: 1m
+      timeWindow: 10m                   # optional — default: 10m
+      operator: inf                     # optional — default: eq
+      threshold: 1                      # required for numeric operators
+    - datasourceId: prom-uid            # second assertion
+      query: up{service="my-app"}
+      operator: eq
+      threshold: 1
 ```
 
 ## Field reference
@@ -32,13 +39,13 @@ testing:
 | Field                         | Type       | Default      | Notes                                                                   |
 | ----------------------------- | ---------- | ------------ | ----------------------------------------------------------------------- |
 | `testing.client`              | enum       | —            | Required. Only `grafana` is supported.                                  |
-| `testing.specs.datasourceKind`| enum       | `prometheus` | Only `prometheus` is supported.                                         |
-| `testing.specs.datasourceId`  | string     | —            | Required. Grafana datasource UID (not name).                            |
-| `testing.specs.query`         | string     | —            | Required. PromQL expression evaluated through the datasource proxy.     |
-| `testing.specs.wait`          | duration   | `1m`         | Delay between the module run and the evaluation. Must be `> 0` and `<= scenario.interval`. |
-| `testing.specs.timeWindow`    | duration   | `10m`        | Prometheus lookback used for `start`/`end` of `query_range`.            |
-| `testing.specs.operator`      | enum       | `eq`         | One of `eq`, `neq`, `inf` (`<`), `sup` (`>`).                           |
-| `testing.specs.threshold`     | number     | `0`          | The value the query result is compared to.                              |
+| `testing.specs[*].datasourceKind` | enum   | `prometheus` | Only `prometheus` is supported.                                         |
+| `testing.specs[*].datasourceId`   | string | —            | Required. Grafana datasource UID (not name).                            |
+| `testing.specs[*].query`          | string | —            | Required. PromQL expression evaluated through the datasource proxy.     |
+| `testing.specs[*].wait`           | duration | `1m`       | Delay before this assertion runs. Must be `> 0` and `<= scenario.interval`. |
+| `testing.specs[*].timeWindow`     | duration | `10m`      | Prometheus lookback used for `start`/`end` of `query_range`.            |
+| `testing.specs[*].operator`       | enum   | `eq`         | One of `eq`, `neq`, `inf` (`<`), `sup` (`>`).                           |
+| `testing.specs[*].threshold`      | number | `0`          | The value the query result is compared to.                              |
 
 ## Environment
 
@@ -56,31 +63,32 @@ Grafana is treated as a misconfiguration, not a soft warning.
 ## Behavior
 
 1. On each `Run`, the module's action executes normally.
-2. `testkit` schedules a deferred evaluation using `time.AfterFunc` with
-   delay = `wait`. No goroutine stays parked during the wait.
-3. When the timer fires:
-   - The querier runs a Prometheus `query_range` through Grafana's
+2. `testkit` schedules a **single** deferred evaluation using `time.AfterFunc`
+   with delay = `max(wait)` across all assertions. No goroutine stays
+   parked during the wait.
+3. When the timer fires, all assertions run **sequentially**:
+   - Each querier runs a Prometheus `query_range` through Grafana's
      datasource proxy (`/api/datasources/proxy/uid/<id>/api/v1/query_range`).
-   - Time range is `[now - timeWindow, now]`, with `step = timeWindow`
-     (one sample).
+   - Time range is `[now - timeWindow, now]`, step = `timeWindow` (one sample).
    - The **last numeric value of the first series** is compared to
      `threshold` using `operator`.
-4. The result is published as `chaos_test_success{name="<module>"}`:
-   - `1` if the assertion passes
-   - `0` if the assertion fails or the query errored
+   - A query error counts as a failure; remaining assertions still run.
+4. The metric is emitted **once** after all assertions complete:
+   - `1` if every assertion passes
+   - `0` if any assertion fails or errors
 
 ## The gauge contract
 
 | Value | Meaning                                                              |
 | ----- | -------------------------------------------------------------------- |
-| `1`   | Query succeeded **and** `operator(value, threshold)` is true.        |
-| `0`   | Either the query failed, no querier was configured, or the check failed. |
+| `1`   | All assertions passed.                                               |
+| `0`   | At least one assertion failed, errored, or no querier was configured. |
 | *absent* | The module never ran at least once since the agent started.       |
 
 This is by design — a flat `0` on your dashboard is always a failure,
 whether the backend was unreachable or the SLO was breached. Alert on it.
 
-## Example: "no 5xx during a rollout"
+## Example: "no 5xx and service up during a rollout"
 
 ```yaml
 kind: Rollout
@@ -93,12 +101,17 @@ scenario:
 testing:
   client: grafana
   specs:
-    datasourceId: prod-prom
-    query: sum(rate(http_requests_total{service="checkout",code=~"5.."}[5m]))
-    wait: 5m
-    timeWindow: 10m
-    operator: inf
-    threshold: 1   # tolerate < 1 req/s of 5xx
+    - datasourceId: prod-prom
+      query: sum(rate(http_requests_total{service="checkout",code=~"5.."}[5m]))
+      wait: 5m
+      timeWindow: 10m
+      operator: inf
+      threshold: 1   # tolerate < 1 req/s of 5xx
+    - datasourceId: prod-prom
+      query: up{service="checkout"}
+      wait: 2m
+      operator: eq
+      threshold: 1   # service must be up
 ```
 
 ## Limitations

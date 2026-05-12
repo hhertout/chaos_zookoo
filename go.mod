@@ -15,6 +15,8 @@ require (
 
 require go.uber.org/atomic v1.11.0
 
+require github.com/kylelemons/godebug v1.1.0 // indirect
+
 require (
 	github.com/adhocore/gronx v1.19.6
 	github.com/beorn7/perks v1.0.1 // indirect

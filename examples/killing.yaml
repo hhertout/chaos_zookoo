@@ -66,11 +66,15 @@ scenario:
 # The testing.specs.wait cannot exceed the scenario interval above.
 # testing:
 #   client: grafana
-#   specs:
-#     datasourceKind: prometheus       # default: prometheus
-#     datasourceId: my-ds-uid
-#     query: sum(container_memory_usage{service_name="my-app"})
-#     wait: 30s                         # default: 1m — must be <= scenario.interval
-#     timeWindow: 10m                   # default: 10m — prometheus lookback
-#     operator: inf                     # eq | neq | inf | sup  (default: eq)
-#     threshold: 100
+#   specs:                               # list — one or more assertions; metric = 1 only if all pass
+#     - datasourceKind: prometheus       # default: prometheus
+#       datasourceId: my-ds-uid
+#       query: sum(container_memory_usage{service_name="my-app"})
+#       wait: 30s                        # default: 1m — must be <= scenario.interval
+#       timeWindow: 10m                  # default: 10m — prometheus lookback
+#       operator: inf                    # eq | neq | inf | sup  (default: eq)
+#       threshold: 100
+#     - datasourceId: my-ds-uid         # second assertion
+#       query: up{service_name="my-app"}
+#       operator: eq
+#       threshold: 1

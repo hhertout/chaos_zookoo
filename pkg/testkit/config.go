@@ -43,7 +43,20 @@ const (
 // Spec is the top-level `testing:` block of a module config.
 type Spec struct {
 	Client  ClientKind `yaml:"client"`
-	Details Details    `yaml:"specs"`
+	Details []Details  `yaml:"specs"`
+}
+
+// MaxWait returns the largest Wait duration across all test details.
+// It is used to schedule the single evaluation timer that runs all tests,
+// ensuring every test has waited at least its declared minimum before being checked.
+func (s *Spec) MaxWait() time.Duration {
+	var max time.Duration
+	for _, d := range s.Details {
+		if d.Wait() > max {
+			max = d.Wait()
+		}
+	}
+	return max
 }
 
 // Details carries the fields of a single test specification.
@@ -81,18 +94,31 @@ func (s *Spec) ApplyDefaultsAndValidate(interval time.Duration) error {
 		return fmt.Errorf("testing.client %q unsupported: only %q is available", s.Client, ClientGrafana)
 	}
 
-	d := &s.Details
+	if len(s.Details) == 0 {
+		return fmt.Errorf("testing.specs must contain at least one entry")
+	}
+
+	for i := range s.Details {
+		if err := s.Details[i].applyDefaultsAndValidate(interval); err != nil {
+			return fmt.Errorf("testing.specs[%d]: %w", i, err)
+		}
+	}
+
+	return nil
+}
+
+func (d *Details) applyDefaultsAndValidate(interval time.Duration) error {
 	if d.DatasourceKind == "" {
 		d.DatasourceKind = DefaultDatasourceKind
 	}
 	if d.DatasourceKind != DatasourcePrometheus {
-		return fmt.Errorf("testing.specs.datasourceKind %q unsupported: only %q is available", d.DatasourceKind, DatasourcePrometheus)
+		return fmt.Errorf("datasourceKind %q unsupported: only %q is available", d.DatasourceKind, DatasourcePrometheus)
 	}
 	if d.DatasourceID == "" {
-		return fmt.Errorf("testing.specs.datasourceId is required")
+		return fmt.Errorf("datasourceId is required")
 	}
 	if d.Query == "" {
-		return fmt.Errorf("testing.specs.query is required")
+		return fmt.Errorf("query is required")
 	}
 
 	if d.Operator == "" {
@@ -101,27 +127,27 @@ func (s *Spec) ApplyDefaultsAndValidate(interval time.Duration) error {
 	switch d.Operator {
 	case OperatorEq, OperatorNeq, OperatorInf, OperatorSup:
 	default:
-		return fmt.Errorf("testing.specs.operator %q invalid: must be eq, neq, inf or sup", d.Operator)
+		return fmt.Errorf("operator %q invalid: must be eq, neq, inf or sup", d.Operator)
 	}
 
 	wait, err := parseDurationOrDefault(d.RawWait, DefaultWait)
 	if err != nil {
-		return fmt.Errorf("testing.specs.wait: %w", err)
+		return fmt.Errorf("wait: %w", err)
 	}
 	if wait <= 0 {
-		return fmt.Errorf("testing.specs.wait must be > 0")
+		return fmt.Errorf("wait must be > 0")
 	}
 	if interval > 0 && wait > interval {
-		return fmt.Errorf("testing.specs.wait (%s) must not exceed the scenario interval (%s)", wait, interval)
+		return fmt.Errorf("wait (%s) must not exceed the scenario interval (%s)", wait, interval)
 	}
 	d.wait = wait
 
 	window, err := parseDurationOrDefault(d.RawTimeWindow, DefaultTimeWindow)
 	if err != nil {
-		return fmt.Errorf("testing.specs.timeWindow: %w", err)
+		return fmt.Errorf("timeWindow: %w", err)
 	}
 	if window <= 0 {
-		return fmt.Errorf("testing.specs.timeWindow must be > 0")
+		return fmt.Errorf("timeWindow must be > 0")
 	}
 	d.timeWindow = window
 

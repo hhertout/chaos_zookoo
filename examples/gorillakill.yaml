@@ -55,11 +55,11 @@ scenario:
 # `chaos_test_success{name="<module name>"}` gauge (1 = pass, 0 = fail).
 # testing:
 #   client: grafana
-#   specs:
-#     datasourceKind: prometheus
-#     datasourceId: my-ds-uid
-#     query: sum(kube_pod_status_ready{namespace="default",condition="true"})
-#     wait: 2m
-#     timeWindow: 10m
-#     operator: sup
-#     threshold: 3
+#   specs:                          # list — one or more assertions; metric = 1 only if all pass
+#     - datasourceKind: prometheus
+#       datasourceId: my-ds-uid
+#       query: sum(kube_pod_status_ready{namespace="default",condition="true"})
+#       wait: 2m
+#       timeWindow: 10m
+#       operator: sup
+#       threshold: 3
