@@ -39,7 +39,7 @@ func metricValue(name, namespace string) float64 {
 	return testutil.ToFloat64(metrics.ChaosTestSuccess.WithLabelValues(name, namespace))
 }
 
-// builtSpec builds and validates a Spec from a list of Details, fataling on error.
+// builtSpec builds and validates a Spec from a list of Details, failing on error.
 func builtSpec(t *testing.T, details ...Details) *Spec {
 	t.Helper()
 	s := &Spec{Client: ClientGrafana, Details: details}
