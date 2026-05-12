@@ -36,10 +36,10 @@ load:         # loadkit middleware
 testing:      # testkit middleware
   client: grafana
   specs:
-    datasourceId: prom-uid
-    query: sum(rate(http_requests_total{code=~"5.."}[5m]))
-    operator: inf
-    threshold: 1
+    - datasourceId: prom-uid
+      query: sum(rate(http_requests_total{code=~"5.."}[5m]))
+      operator: inf
+      threshold: 1
 ```
 
 Neither `load:` nor `testing:` is mandatory. When absent, the middleware

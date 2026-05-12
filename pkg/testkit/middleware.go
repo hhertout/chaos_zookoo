@@ -50,7 +50,8 @@ func (r *Runner) HasQuerier() bool {
 	return r.querier != nil
 }
 
-// Schedule defers a test evaluation by spec.Details.Wait().
+// Schedule defers a single evaluation after spec.MaxWait(). All tests in the
+// spec run sequentially at that point, and the metric is emitted once.
 func (r *Runner) Schedule(ctx context.Context, name string, spec *Spec) {
 	if r == nil || spec == nil {
 		return
@@ -63,10 +64,17 @@ func (r *Runner) Schedule(ctx context.Context, name string, spec *Spec) {
 	}
 	r.wg.Add(1)
 
+	wait := spec.MaxWait()
+	// timer is written under r.mu (below) and read by the callback also under
+	// r.mu, so the mutex provides the happens-before that prevents the data
+	// race inherent in capturing a *Timer variable in an AfterFunc closure.
 	var timer *time.Timer
-	timer = time.AfterFunc(spec.Details.Wait(), func() {
+	timer = time.AfterFunc(wait, func() {
 		defer r.wg.Done()
-		r.forgetTimer(timer)
+		r.mu.Lock()
+		t := timer
+		delete(r.timers, t)
+		r.mu.Unlock()
 		r.runTest(ctx, name, spec)
 	})
 	r.timers[timer] = struct{}{}
@@ -74,7 +82,8 @@ func (r *Runner) Schedule(ctx context.Context, name string, spec *Spec) {
 
 	zap.L().Debug("chaos test scheduled",
 		zap.String("name", name),
-		zap.Duration("wait", spec.Details.Wait()),
+		zap.Duration("wait", wait),
+		zap.Int("tests", len(spec.Details)),
 	)
 }
 
@@ -118,32 +127,46 @@ func (r *Runner) runTest(ctx context.Context, name string, spec *Spec) {
 		return
 	}
 
-	queryCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
-	defer cancel()
+	allPassed := true
+	for i, d := range spec.Details {
+		queryCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+		value, err := r.querier.Query(queryCtx, d)
+		cancel()
 
-	value, err := r.querier.Query(queryCtx, spec.Details)
-	if err != nil {
-		zap.L().Error("chaos test query failed",
+		if err != nil {
+			zap.L().Error("chaos test query failed",
+				zap.String("name", name),
+				zap.Int("index", i),
+				zap.Error(err),
+			)
+			allPassed = false
+			continue
+		}
+
+		pass := Evaluate(value, d.Operator, d.Threshold)
+		if !pass {
+			allPassed = false
+		}
+		zap.L().Info("chaos test evaluated",
 			zap.String("name", name),
-			zap.Error(err),
+			zap.Int("index", i),
+			zap.Float64("value", value),
+			zap.String("operator", string(d.Operator)),
+			zap.Float64("threshold", d.Threshold),
+			zap.Bool("pass", pass),
 		)
-		metrics.ChaosTestSuccess.WithLabelValues(name).Set(0)
-		return
 	}
 
-	pass := Evaluate(value, spec.Details.Operator, spec.Details.Threshold)
 	metricValue := 0.0
-	if pass {
+	if allPassed {
 		metricValue = 1.0
 	}
 	metrics.ChaosTestSuccess.WithLabelValues(name).Set(metricValue)
 
-	zap.L().Info("chaos test evaluated",
+	zap.L().Info("chaos test suite result",
 		zap.String("name", name),
-		zap.Float64("value", value),
-		zap.String("operator", string(spec.Details.Operator)),
-		zap.Float64("threshold", spec.Details.Threshold),
-		zap.Bool("pass", pass),
+		zap.Int("tests", len(spec.Details)),
+		zap.Bool("allPassed", allPassed),
 	)
 }
 

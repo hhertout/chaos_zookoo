@@ -38,10 +38,10 @@ scenario:
 testing:
   client: grafana
   specs:
-    datasourceId: prom-uid
-    query: sum(rate(http_requests_total[5m]))
-    operator: sup
-    threshold: 10
+    - datasourceId: prom-uid
+      query: sum(rate(http_requests_total[5m]))
+      operator: sup
+      threshold: 10
 
 load:
   vus: 5
