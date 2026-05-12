@@ -34,9 +34,10 @@ func (m *mockQuerier) Query(_ context.Context, _ Details) (float64, error) {
 	return r.value, r.err
 }
 
-// metricValue reads the current value of ChaosTestSuccess for a given module name and namespace.
-func metricValue(name, namespace string) float64 {
-	return testutil.ToFloat64(metrics.ChaosTestSuccess.WithLabelValues(name, namespace))
+// metricValue reads the current value of ChaosTestSuccess for a given module name.
+// Tests use the "default" namespace throughout.
+func metricValue(name string) float64 {
+	return testutil.ToFloat64(metrics.ChaosTestSuccess.WithLabelValues(name, "default"))
 }
 
 // builtSpec builds and validates a Spec from a list of Details, failing on error.
@@ -62,7 +63,7 @@ func TestRunTest_AllPass_MetricIsOne(t *testing.T) {
 
 	r.runTest(context.Background(), name, namespace, spec)
 
-	assert.Equal(t, 1.0, metricValue(name, namespace))
+	assert.Equal(t, 1.0, metricValue(name))
 	assert.Equal(t, 2, q.callIdx, "both queries must be called")
 }
 
@@ -79,7 +80,7 @@ func TestRunTest_OneFailsFirst_MetricIsZero(t *testing.T) {
 
 	r.runTest(context.Background(), name, namespace, spec)
 
-	assert.Equal(t, 0.0, metricValue(name, namespace))
+	assert.Equal(t, 0.0, metricValue(name))
 	assert.Equal(t, 2, q.callIdx, "all queries run even if one fails")
 }
 
@@ -96,7 +97,7 @@ func TestRunTest_OneFailsLast_MetricIsZero(t *testing.T) {
 
 	r.runTest(context.Background(), name, namespace, spec)
 
-	assert.Equal(t, 0.0, metricValue(name, namespace))
+	assert.Equal(t, 0.0, metricValue(name))
 }
 
 func TestRunTest_QueryError_MetricIsZero_ContinuesOtherTests(t *testing.T) {
@@ -117,7 +118,7 @@ func TestRunTest_QueryError_MetricIsZero_ContinuesOtherTests(t *testing.T) {
 
 	r.runTest(context.Background(), name, namespace, spec)
 
-	assert.Equal(t, 0.0, metricValue(name, namespace))
+	assert.Equal(t, 0.0, metricValue(name))
 	assert.Equal(t, 3, q.callIdx, "remaining queries still run after an error")
 }
 
@@ -134,7 +135,7 @@ func TestRunTest_AllQueriesError_MetricIsZero(t *testing.T) {
 
 	r.runTest(context.Background(), name, namespace, spec)
 
-	assert.Equal(t, 0.0, metricValue(name, namespace))
+	assert.Equal(t, 0.0, metricValue(name))
 }
 
 func TestRunTest_NilQuerier_MetricIsZero(t *testing.T) {
@@ -145,7 +146,7 @@ func TestRunTest_NilQuerier_MetricIsZero(t *testing.T) {
 
 	r.runTest(context.Background(), name, namespace, spec)
 
-	assert.Equal(t, 0.0, metricValue(name, namespace))
+	assert.Equal(t, 0.0, metricValue(name))
 }
 
 func TestRunTest_ContextAlreadyCanceled_NoMetric(t *testing.T) {
@@ -164,7 +165,7 @@ func TestRunTest_ContextAlreadyCanceled_NoMetric(t *testing.T) {
 	r.runTest(ctx, name, namespace, spec)
 
 	// Metric must not have been touched (stays at sentinel).
-	assert.Equal(t, 99.0, metricValue(name, namespace))
+	assert.Equal(t, 99.0, metricValue(name))
 	assert.Equal(t, 0, q.callIdx, "querier must not be called when context is already canceled")
 }
 
@@ -185,7 +186,7 @@ func TestSchedule_FiresAndSetsMetric(t *testing.T) {
 	r.Schedule(context.Background(), name, namespace, spec)
 	r.wg.Wait()
 
-	assert.Equal(t, 1.0, metricValue(name, namespace))
+	assert.Equal(t, 1.0, metricValue(name))
 }
 
 func TestSchedule_StoppedRunner_DoesNotFire(t *testing.T) {
@@ -201,7 +202,7 @@ func TestSchedule_StoppedRunner_DoesNotFire(t *testing.T) {
 	r.Schedule(context.Background(), name, namespace, spec)
 
 	time.Sleep(50 * time.Millisecond)
-	assert.Equal(t, 99.0, metricValue(name, namespace), "stopped runner must not update metric")
+	assert.Equal(t, 99.0, metricValue(name), "stopped runner must not update metric")
 }
 
 func TestStop_CancelsPendingTimers(t *testing.T) {
@@ -216,7 +217,7 @@ func TestStop_CancelsPendingTimers(t *testing.T) {
 	r.Schedule(context.Background(), name, namespace, spec)
 	r.Stop() // must return before the 10s timer fires
 
-	assert.Equal(t, 99.0, metricValue(name, namespace), "metric must not change after Stop")
+	assert.Equal(t, 99.0, metricValue(name), "metric must not change after Stop")
 	assert.Equal(t, 0, q.callIdx, "querier must not be called after Stop")
 }
 
