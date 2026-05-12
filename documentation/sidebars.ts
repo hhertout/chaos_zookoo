@@ -37,7 +37,7 @@ const sidebars: SidebarsConfig = {
     },
     {
       type: 'category',
-      label: 'Concepts',
+      label: 'Reference',
       items: [
         'concepts/matchers',
         'concepts/scheduling',
