@@ -124,7 +124,7 @@ Shared patterns to keep consistent:
 Both follow the same shape: a typed `Spec` parsed by `internal/config`, an `ApplyDefaultsAndValidate(scenarioInterval)` method, and a `NewMiddleware(...)` constructor that returns `module.Middleware`. The middleware returns a no-op decorator when its spec is nil, so modules that don't declare `testing:` / `load:` incur zero overhead.
 
 - **`loadkit`** fires an HTTP burst *in parallel* with `inner.Run`, tracked by a `Supervisor` so shutdown can drain in-flight bursts.
-- **`testkit`** schedules evaluation *after* `inner.Run` with `time.AfterFunc(spec.Wait())`. The Grafana client queries Prometheus via the datasource proxy and the result is exposed as `chaos_test_success{name="<module>"}` (1/0).
+- **`testkit`** schedules evaluation *after* `inner.Run` with `time.AfterFunc(spec.Wait())`. The Grafana client queries Prometheus via the datasource proxy and the result is exposed as `chaos_test_success{name="<module>", namespace="<namespace>"}` (1/0).
 
 The wrap order in `main.registerModules` is `orch.Register(testMw(loadMw(m)))` — load fires *during* the action, test fires *after* the whole thing. Don't reorder without thinking it through.
 

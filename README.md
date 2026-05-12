@@ -194,7 +194,7 @@ load:
 
 ### Middleware: Post-run assertion (`testing:`)
 
-After each module run, queries a Prometheus datasource via Grafana and records the result on the `chaos_test_success{name="<module>"}` gauge (1 = pass, 0 = fail). Requires `GRAFANA_URL` and `GRAFANA_TOKEN` environment variables.
+After each module run, queries a Prometheus datasource via Grafana and records the result on the `chaos_test_success{name="<module>", namespace="<namespace>"}` gauge (1 = pass, 0 = fail). Requires `GRAFANA_URL` and `GRAFANA_TOKEN` environment variables.
 
 ```yaml
 testing:
@@ -215,10 +215,10 @@ The agent exposes Prometheus metrics on `METRICS_ADDR` (default `:9090`):
 
 | Metric | Description |
 | --- | --- |
-| `chaos_test_success{name}` | Result of the last `testing:` assertion (1 = pass, 0 = fail) |
-| `chaos_loading_http_active` | In-flight HTTP requests from `load:` bursts |
-| `chaos_load_requests_total` | Total HTTP requests sent by `load:` |
-| `chaos_load_request_duration_seconds` | Histogram of `load:` request latencies |
+| `chaos_test_success{name, namespace}` | Result of the last `testing:` assertion (1 = pass, 0 = fail) |
+| `chaos_loading_http_active{name, namespace, method, url}` | In-flight HTTP requests from `load:` bursts |
+| `chaos_load_requests_total{name, namespace, method, url, status}` | Total HTTP requests sent by `load:` |
+| `chaos_load_request_duration_seconds{name, namespace, method, url}` | Histogram of `load:` request latencies |
 
 ## Make targets
 

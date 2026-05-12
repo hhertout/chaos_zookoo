@@ -204,7 +204,7 @@ sum(rate(chaos_load_requests_total[1m]))
 
 - **`chaos_test_success == 0`** — the scenario ran, the SLO was
   breached. Page.
-- **`absent_over_time(chaos_test_success{name="..."}[2h])`** — the
+- **`absent_over_time(chaos_test_success{name="...", namespace="..."}[2h])`** — the
   scenario hasn't run in 2h. The agent is down or misconfigured.
 - **`chaos_module_runs_total{status="error"} > 0`** — at least one run
   failed. Check the agent logs for the module.

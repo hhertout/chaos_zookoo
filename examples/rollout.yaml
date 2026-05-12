@@ -45,7 +45,7 @@ scenario:
 
 # Optional post-run verification. When present, after every tick the module
 # defers a query to the configured backend and records the result on the
-# `chaos_test_success{name="<module name>"}` gauge (1 = pass, 0 = fail).
+# `chaos_test_success{name="<module name>", namespace="<namespace>"}` gauge (1 = pass, 0 = fail).
 # testing:
 #   client: grafana
 #   specs:                          # list — one or more assertions; metric = 1 only if all pass
