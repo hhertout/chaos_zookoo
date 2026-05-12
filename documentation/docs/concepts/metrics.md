@@ -84,7 +84,7 @@ Incremented once per pod successfully removed (`Killing`) or deleted
 ### `chaos_test_success`
 
 ```
-chaos_test_success{name="<module>"}
+chaos_test_success{name="<module>", namespace="<namespace>"}
 ```
 
 | Type   | Gauge |
@@ -103,7 +103,7 @@ The series is absent until the module has run at least once.
 ### `chaos_loading_http_active`
 
 ```
-chaos_loading_http_active{name="<module>", method="GET|POST", url="..."}
+chaos_loading_http_active{name="<module>", namespace="<namespace>", method="GET|POST", url="..."}
 ```
 
 | Type   | Gauge |
@@ -116,7 +116,7 @@ to overlay on graphs to see when load was active.
 ### `chaos_load_requests_total`
 
 ```
-chaos_load_requests_total{name, method, url, status="2xx|3xx|4xx|5xx|1xx|error"}
+chaos_load_requests_total{name, namespace, method, url, status="2xx|3xx|4xx|5xx|1xx|error"}
 ```
 
 | Type   | Counter |
@@ -129,7 +129,7 @@ Total HTTP requests fired by a load burst, bucketed by status class.
 ### `chaos_load_request_duration_seconds`
 
 ```
-chaos_load_request_duration_seconds_bucket{name, method, url, le="..."}
+chaos_load_request_duration_seconds_bucket{name, namespace, method, url, le="..."}
 ```
 
 | Type   | Histogram (default `prometheus.DefBuckets`) |

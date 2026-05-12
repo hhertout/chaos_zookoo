@@ -27,7 +27,7 @@ var ChaosTestSuccess = prometheus.NewGaugeVec(
 		Name: "chaos_test_success",
 		Help: "Outcome of the last chaos test: 1 = pass, 0 = fail.",
 	},
-	[]string{labelName},
+	[]string{labelName, labelNamespace},
 )
 
 // ChaosLoadingHttpActive is 1 while a load burst is firing, 0 otherwise.
@@ -36,7 +36,7 @@ var ChaosLoadingHttpActive = prometheus.NewGaugeVec(
 		Name: "chaos_loading_http_active",
 		Help: "Whether the load test is active (1) or not.",
 	},
-	[]string{labelName, labelMethod, labelURL},
+	[]string{labelName, labelNamespace, labelMethod, labelURL},
 )
 
 // ChaosLoadRequestsTotal counts every HTTP request issued by a load burst.
@@ -45,7 +45,7 @@ var ChaosLoadRequestsTotal = prometheus.NewCounterVec(
 		Name: "chaos_load_requests_total",
 		Help: "Total HTTP requests fired by a load burst.",
 	},
-	[]string{labelName, labelMethod, labelURL, "status"},
+	[]string{labelName, labelNamespace, labelMethod, labelURL, "status"},
 )
 
 // ChaosLoadRequestDuration observes wall-clock latency of each load request.
@@ -55,7 +55,7 @@ var ChaosLoadRequestDuration = prometheus.NewHistogramVec(
 		Help:    "Latency of HTTP requests fired by a load burst.",
 		Buckets: prometheus.DefBuckets,
 	},
-	[]string{labelName, labelMethod, labelURL},
+	[]string{labelName, labelNamespace, labelMethod, labelURL},
 )
 
 // ── Module observability ─────────────────────────────────────────────────────

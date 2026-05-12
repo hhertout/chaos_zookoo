@@ -22,13 +22,14 @@ const perRequestTimeout = 30 * time.Second
 // Runner executes a single load burst. Safe to call Run repeatedly.
 type Runner struct {
 	name       string
+	namespace  string
 	spec       *Spec
 	lastErrLog uberatomic.Int64 // unix nanoseconds of last 4xx/5xx log
 }
 
-// NewRunner builds a runner from a module name and a validated spec.
-func NewRunner(name string, spec *Spec) *Runner {
-	return &Runner{name: name, spec: spec}
+// NewRunner builds a runner from a module name, namespace, and a validated spec.
+func NewRunner(name, namespace string, spec *Spec) *Runner {
+	return &Runner{name: name, namespace: namespace, spec: spec}
 }
 
 // Run fires spec.Vus parallel workers for spec.Duration.
@@ -42,8 +43,8 @@ func (r *Runner) Run(ctx context.Context) error {
 
 	method := r.spec.Requests.Method
 	url := r.spec.Requests.URL
-	metrics.ChaosLoadingHttpActive.WithLabelValues(r.name, method, url).Set(1)
-	defer metrics.ChaosLoadingHttpActive.WithLabelValues(r.name, method, url).Set(0)
+	metrics.ChaosLoadingHttpActive.WithLabelValues(r.name, r.namespace, method, url).Set(1)
+	defer metrics.ChaosLoadingHttpActive.WithLabelValues(r.name, r.namespace, method, url).Set(0)
 
 	zap.L().Info("load burst starting",
 		zap.String("name", r.name),
@@ -97,7 +98,7 @@ func (r *Runner) fire(ctx context.Context, client *http.Client) {
 
 	req, err := http.NewRequestWithContext(ctx, method, url, body)
 	if err != nil {
-		metrics.ChaosLoadRequestsTotal.WithLabelValues(r.name, method, url, "error").Inc()
+		metrics.ChaosLoadRequestsTotal.WithLabelValues(r.name, r.namespace, method, url, "error").Inc()
 		return
 	}
 	if r.spec.Requests.ContentType != "" {
@@ -107,7 +108,7 @@ func (r *Runner) fire(ctx context.Context, client *http.Client) {
 	start := time.Now()
 	resp, err := client.Do(req)
 	elapsed := time.Since(start).Seconds()
-	metrics.ChaosLoadRequestDuration.WithLabelValues(r.name, method, url).Observe(elapsed)
+	metrics.ChaosLoadRequestDuration.WithLabelValues(r.name, r.namespace, method, url).Observe(elapsed)
 
 	if err != nil {
 		now := time.Now().UnixNano()
@@ -120,11 +121,11 @@ func (r *Runner) fire(ctx context.Context, client *http.Client) {
 			zap.L().Error("load request failed", zap.String("name", r.name), zap.Error(err))
 		}
 		if errors.Is(err, context.Canceled) {
-			metrics.ChaosLoadRequestsTotal.WithLabelValues(r.name, method, url, "canceled").Inc()
+			metrics.ChaosLoadRequestsTotal.WithLabelValues(r.name, r.namespace, method, url, "canceled").Inc()
 		} else if errors.Is(err, context.DeadlineExceeded) {
-			metrics.ChaosLoadRequestsTotal.WithLabelValues(r.name, method, url, "timeout").Inc()
+			metrics.ChaosLoadRequestsTotal.WithLabelValues(r.name, r.namespace, method, url, "timeout").Inc()
 		} else {
-			metrics.ChaosLoadRequestsTotal.WithLabelValues(r.name, method, url, "unknown_error").Inc()
+			metrics.ChaosLoadRequestsTotal.WithLabelValues(r.name, r.namespace, method, url, "unknown_error").Inc()
 		}
 
 		return
@@ -145,7 +146,7 @@ func (r *Runner) fire(ctx context.Context, client *http.Client) {
 			)
 		}
 	}
-	metrics.ChaosLoadRequestsTotal.WithLabelValues(r.name, method, url, class).Inc()
+	metrics.ChaosLoadRequestsTotal.WithLabelValues(r.name, r.namespace, method, url, class).Inc()
 }
 
 func statusClass(code int) string {
