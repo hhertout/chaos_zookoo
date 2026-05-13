@@ -15,6 +15,7 @@ import (
 	"github.com/hhertout/chaos_zookoo/pkg/loadkit"
 	"github.com/hhertout/chaos_zookoo/pkg/metrics"
 	"github.com/hhertout/chaos_zookoo/pkg/module"
+	"github.com/hhertout/chaos_zookoo/pkg/nodedrain"
 	"github.com/hhertout/chaos_zookoo/pkg/rollout"
 	"github.com/hhertout/chaos_zookoo/pkg/testkit"
 	"github.com/joho/godotenv"
@@ -27,6 +28,7 @@ var builders = map[string]module.Builder{
 	"Killing":     killing.Build,
 	"Rollout":     rollout.Build,
 	"GorillaKill": gorillakill.Build,
+	"NodeDrain":   nodedrain.Build,
 }
 
 func main() {
