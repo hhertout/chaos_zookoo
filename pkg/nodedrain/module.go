@@ -250,16 +250,13 @@ func (m *Module) waitForRecovery(ctx context.Context, nodeName string) error {
 		case <-timeout:
 			return fmt.Errorf("readiness timeout after %s waiting for node %s recovery", m.specs.ReadinessTimeout(), nodeName)
 		case <-ticker.C:
-			pods, err := m.client.CoreV1().Pods(m.namespace).List(ctx, metav1.ListOptions{})
+			pods, err := m.client.CoreV1().Pods(m.namespace).List(ctx, metav1.ListOptions{
+				FieldSelector: "status.phase=Running",
+			})
 			if err != nil {
-				continue
+				return fmt.Errorf("listing running pods in namespace %s while waiting for node %s recovery: %w", m.namespace, nodeName, err)
 			}
-			running := 0
-			for _, p := range pods.Items {
-				if p.Status.Phase == corev1.PodRunning {
-					running++
-				}
-			}
+			running := len(pods.Items)
 			if running >= m.specs.MinReady {
 				zap.L().Info("node recovered",
 					zap.String("kind", "NodeDrain"),
