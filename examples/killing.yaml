@@ -37,8 +37,9 @@ scenario:
   dryRun: false
 
   # How the pod is removed:
-  #   - evict  (default): uses the Eviction API — respects PodDisruptionBudgets.
-  #   - delete: hard delete, bypasses PDBs.
+  #   - evict        (default): uses the Eviction API — respects PodDisruptionBudgets.
+  #   - delete:      hard delete, bypasses PDBs, honours the grace period.
+  #   - force-delete: hard delete with GracePeriodSeconds=0 — SIGKILL immediately.
   strategy: evict
 
   # Matchers select the candidate pool. You can combine several: the module
