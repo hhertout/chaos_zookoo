@@ -28,8 +28,8 @@ Every document shares the same outer shape:
 
 ```yaml
 kind: Killing                # required — the module kind
-name: kill-my-app            # required — human-readable identifier
 metadata:
+  name: kill-my-app          # required — human-readable identifier
   namespace: default         # required — namespace the module acts on
 scenario:
   # ... module-specific fields: interval, matchers, dryRun, strategy, ...
@@ -70,8 +70,7 @@ A single file can hold multiple scenarios:
 
 ```yaml
 kind: Killing
-name: kill-api
-metadata: {namespace: api}
+metadata: {name: kill-api, namespace: api}
 scenario:
   interval: 60s
   minAvailable: 2
@@ -81,8 +80,7 @@ scenario:
 ---
 
 kind: Rollout
-name: restart-worker
-metadata: {namespace: workers}
+metadata: {name: restart-worker, namespace: workers}
 scenario:
   interval: 1h
   matchers:

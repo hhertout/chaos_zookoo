@@ -29,7 +29,6 @@ const defaultReadinessTimeout = 5 * time.Minute
 
 type Config struct {
 	Kind     string          `yaml:"kind"`
-	Name     string          `yaml:"name"`
 	Metadata module.Metadata `yaml:"metadata"`
 	Scenario Scenario        `yaml:"scenario"`
 
@@ -72,9 +71,9 @@ func ParseConfig(data []byte) (Config, error) {
 		return Config{}, fmt.Errorf("parsing nodedrain config: %w", err)
 	}
 
-	cfg.Name = strings.TrimSpace(cfg.Name)
-	if cfg.Name == "" {
-		return Config{}, fmt.Errorf("nodedrain config requires a name")
+	cfg.Metadata.Name = strings.TrimSpace(cfg.Metadata.Name)
+	if cfg.Metadata.Name == "" {
+		return Config{}, fmt.Errorf("nodedrain config requires metadata.name")
 	}
 	if cfg.Metadata.Namespace == "" {
 		return Config{}, fmt.Errorf("nodedrain config requires metadata.namespace")

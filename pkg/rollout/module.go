@@ -71,7 +71,7 @@ type Module struct {
 func New(client kubernetes.Interface, cfg Config) *Module {
 	return &Module{
 		client:    client,
-		name:      cfg.Name,
+		name:      cfg.Metadata.Name,
 		namespace: cfg.Metadata.Namespace,
 		matchers:  cfg.Scenario.Matchers,
 		dryRun:    cfg.Scenario.DryRun,

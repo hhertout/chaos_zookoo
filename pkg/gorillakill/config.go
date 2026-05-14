@@ -22,7 +22,6 @@ const (
 // Config holds the parsed configuration for the gorillakill module.
 type Config struct {
 	Kind     string          `yaml:"kind"`
-	Name     string          `yaml:"name"`
 	Metadata module.Metadata `yaml:"metadata"`
 	Scenario Scenario        `yaml:"scenario"`
 
@@ -54,9 +53,9 @@ func ParseConfig(data []byte) (Config, error) {
 		return Config{}, fmt.Errorf("parsing gorillakill config: %w", err)
 	}
 
-	cfg.Name = strings.TrimSpace(cfg.Name)
-	if cfg.Name == "" {
-		return Config{}, fmt.Errorf("gorillakill config requires a name")
+	cfg.Metadata.Name = strings.TrimSpace(cfg.Metadata.Name)
+	if cfg.Metadata.Name == "" {
+		return Config{}, fmt.Errorf("gorillakill config requires metadata.name")
 	}
 	if cfg.Metadata.Namespace == "" {
 		return Config{}, fmt.Errorf("gorillakill config requires metadata.namespace")

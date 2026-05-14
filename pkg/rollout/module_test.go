@@ -33,8 +33,8 @@ func assertPatchAction(t *testing.T, client *fake.Clientset, resource string) {
 
 func TestParseConfig_RequiresResourceMatcher(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: Rollout
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   interval: 1h
@@ -44,7 +44,8 @@ scenario:
 
 func TestParseConfig_RequiresNamespace(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: Rollout
-name: test
+metadata:
+  name: test
 scenario:
   interval: 1h
   matchers:
@@ -55,8 +56,8 @@ scenario:
 
 func TestParseConfig_AcceptsAllMatcherTypes(t *testing.T) {
 	const tmpl = `kind: Rollout
-name: test
 metadata:
+  name: test
   namespace: ns
 scenario:
   interval: 1h
@@ -82,8 +83,8 @@ scenario:
 
 func workloadCfg(workload, name string) string {
 	return fmt.Sprintf(`kind: Rollout
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   interval: 1h
@@ -160,8 +161,8 @@ scenario:
 
 func TestParseConfig_RejectsWhitespaceOnlyName(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: Rollout
-name: "   "
 metadata:
+  name: "   "
   namespace: default
 scenario:
   interval: 1h
@@ -173,8 +174,8 @@ scenario:
 
 func TestParseConfig_RejectsZeroInterval(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: Rollout
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   interval: 0s
@@ -186,8 +187,8 @@ scenario:
 
 func TestParseConfig_RejectsNegativeInterval(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: Rollout
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   interval: -1h
@@ -199,8 +200,8 @@ scenario:
 
 func TestParseConfig_RejectsInvalidIntervalFormat(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: Rollout
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   interval: "bad"
@@ -212,8 +213,8 @@ scenario:
 
 func TestParseConfig_RejectsIntervalAndCronTogether(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: Rollout
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   interval: 1h
@@ -226,8 +227,8 @@ scenario:
 
 func TestParseConfig_AcceptsCronSchedule(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: Rollout
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   cron: "*/30 * * * *"
@@ -239,8 +240,8 @@ scenario:
 
 func TestParseConfig_RejectsInvalidCronExpression(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: Rollout
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   cron: "bad-cron"
@@ -252,8 +253,8 @@ scenario:
 
 func TestParseConfig_RejectsWaitWithCron(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: Rollout
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   cron: "*/30 * * * *"
@@ -266,8 +267,8 @@ scenario:
 
 func TestParseConfig_RejectsWaitGreaterThanInterval(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: Rollout
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   interval: 1h
@@ -280,8 +281,8 @@ scenario:
 
 func TestParseConfig_AcceptsValidWait(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: Rollout
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   interval: 1h

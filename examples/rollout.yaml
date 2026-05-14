@@ -7,11 +7,11 @@
 
 kind: Rollout
 
-# Human-readable identifier for this module instance. Appears in every log
-# line so you can distinguish multiple instances. Required.
-name: rollout-my-deployment
-
+# Metadata block — identifies the module and where it acts.
 metadata:
+  # Human-readable identifier. Appears in every log line and in Prometheus
+  # label values. Required.
+  name: rollout-my-deployment
   namespace: default
 
 # Scenario block — describes the chaos action itself.
