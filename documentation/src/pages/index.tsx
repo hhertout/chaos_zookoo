@@ -92,17 +92,18 @@ const FEATURES = [
 ];
 
 const YAML_SRC = `kind: Killing
-name: frontend-pod-killer
-namespace: production
-schedule:
+metadata:
+  name: frontend-pod-killer
+  namespace: production
+scenario:
   interval: 5m
-  initialDelay: 30s
-selector:
-  labels:
-    app: frontend
-    tier: web
-minAvailable: 2
-dryRun: false`;
+  wait: 30s
+  minAvailable: 2
+  dryRun: false
+  matchers:
+    labels:
+      app: frontend
+      tier: web`;
 
 function YamlCodeBlock(): ReactNode {
   const {colorMode} = useColorMode();
