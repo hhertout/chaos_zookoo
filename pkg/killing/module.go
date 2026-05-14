@@ -92,7 +92,7 @@ func (m *Module) Schedule() module.Schedule {
 	if m.cronExpr != "" {
 		return module.Schedule{Mode: module.ScheduleCron, CronExpr: m.cronExpr}
 	}
-	return module.Schedule{Mode: module.SchedulePeriodic, Interval: m.interval, InitialDelay: m.wait}
+	return module.Schedule{Mode: module.SchedulePeriodic, Interval: m.interval}
 }
 
 // Run collects matching pods and randomly kills one, respecting minAvailable.
