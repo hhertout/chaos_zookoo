@@ -18,6 +18,7 @@ load generation or post-run checks.
 | `Killing`       | Picks **one random** matching pod and removes it.   | Periodic                 | [Killing](./killing.md)              |
 | `GorillaKill`   | Removes **every** matching pod in a single pass.    | Periodic **or** once     | [GorillaKill](./gorillakill.md)      |
 | `Rollout`       | Patches a workload's pod template with a restart annotation. | Periodic         | [Rollout](./rollout.md)              |
+| `NodeDrain`     | Drains all namespace pods from each node sequentially, simulating a rolling restart. | Periodic **or** once | [NodeDrain](./nodedrain.md) |
 
 ## The module contract
 

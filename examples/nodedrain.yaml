@@ -1,0 +1,100 @@
+# NodeDrain module — simulates a rolling node restart (cluster upgrade scenario).
+#
+# For each targeted node, it kills every pod in the namespace that is scheduled
+# on that node, waits for the cluster to recover, then moves to the next node.
+# Nodes are processed sequentially in alphabetical order, which makes runs
+# reproducible and mirrors what a real rolling upgrade orchestrator would do.
+#
+# Pods you want to protect (e.g. monitoring agents, critical infra) can be
+# shielded via the `guard` block — they are never killed regardless of which
+# node they are on.
+
+kind: NodeDrain
+
+# Human-readable identifier for this module instance. Appears in every log
+# line so you can distinguish multiple instances. Required.
+name: simulate-upgrade
+
+metadata:
+  namespace: default
+
+# Scenario block — describes the chaos action itself.
+scenario:
+  # When the module runs:
+  #   - once:     executed a single time, nodes drained in one pass.
+  #   - periodic: repeated on `interval` or `cron` (good for scheduled drills).
+  when: once
+
+  # Only required when `when: periodic`. `interval` and `cron` are mutually exclusive.
+  # interval: 6h
+
+  # Alternative to `interval` for periodic mode: standard 5-field cron expression.
+  # cron: "0 3 * * 1"
+
+  # Delay before the first (or only) execution once the scenario starts.
+  # For `when: periodic`, must be strictly less than `interval`. Ignored with `cron`.
+  # For `when: once`, unbounded. Default: 0.
+  # wait: 30s
+
+  # If true, log what WOULD be killed without touching the API. The log output
+  # is identical to a real run — same "pod killed" and "draining node" entries —
+  # minus the mutating API call and the metrics increment.
+  # Default: false
+  dryRun: false
+
+  specs:
+    # How pods are removed from each node:
+    #   - evict  (default): uses the Eviction API — respects PodDisruptionBudgets.
+    #   - delete: hard delete, bypasses PDBs.
+    strategy: evict
+
+    # Label selector to restrict which nodes are drained.
+    # Only nodes carrying ALL of these labels are targeted.
+    # If absent, all schedulable nodes in the cluster are included
+    # (nodes marked Unschedulable/cordoned are always skipped).
+    nodeSelector:
+      kubernetes.io/role: worker
+
+    # Maximum time to wait for namespace pods to recover before moving to the
+    # next node. A timeout is a warning, not a fatal error: the module logs it
+    # and continues to the next node, exactly as a real rolling upgrade would.
+    # Default: 5m
+    readinessTimeout: 5m
+
+    # Minimum number of Running pods in the namespace required to consider the
+    # node absorbed. The module polls until this threshold is met or
+    # `readinessTimeout` is exceeded. Set to 0 to skip recovery waiting entirely.
+    # Default: 0
+    minReady: 2
+
+  # Pods and workloads to never kill, regardless of which node they land on.
+  # The exclusion set is recomputed per node so it stays accurate across
+  # periodic runs where pods may move between ticks.
+  # Omit this block entirely if no exclusions are needed.
+  guard:
+    matchers:
+      # 1) Label selector — any pod carrying these labels is excluded.
+      labels:
+        app: critical-infra
+
+      # 2) Exact pod name.
+      # podName: my-fixed-pod
+
+      # 3) Workload owners — excludes all pods owned by the workload.
+      # deploymentName: monitoring-agent
+      # daemonsetName: my-ds
+      # statefulsetName: my-sts
+
+# Optional post-run verification. When present, after every run the module
+# defers a query to the configured backend and records the result on the
+# `chaos_test_success{name="<module name>", namespace="<namespace>"}` gauge (1 = pass, 0 = fail).
+# testing:
+#   client: grafana
+#   specs:                          # list — one or more assertions; metric = 1 only if all pass
+#     - datasourceKind: prometheus
+#       datasourceId: my-ds-uid
+#       query: sum(kube_pod_status_ready{namespace="default",condition="true"})
+#       wait: 10m
+#       timeWindow: 15m
+#       operator: sup
+#       threshold: 3

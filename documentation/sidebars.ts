@@ -23,6 +23,7 @@ const sidebars: SidebarsConfig = {
         'modules/killing',
         'modules/gorillakill',
         'modules/rollout',
+        'modules/nodedrain',
       ],
     },
     {
