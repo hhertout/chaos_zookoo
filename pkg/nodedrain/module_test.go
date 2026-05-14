@@ -237,17 +237,22 @@ scenario:
 		},
 		{
 			name:    "rejects negative minReady",
-			yaml:    minimalOnce + "  specs:\n    minReady: -1\n",
+			yaml:    minimalOnce + "  specs:\n    minReady: -2\n",
 			wantErr: true,
 		},
 		{
-			name:    "minReady defaults to 1",
+			name:    "minReady defaults to 0",
 			yaml:    minimalOnce,
 			wantErr: false,
 			check: func(t *testing.T, cfg Config) {
 				t.Helper()
-				assert.Equal(t, 1, cfg.Scenario.Specs.MinReady)
+				assert.Equal(t, 0, cfg.Scenario.Specs.MinReady)
 			},
+		},
+		{
+			name:    "minReady 0 is valid",
+			yaml:    minimalOnce + "  specs:\n    minReady: 0\n",
+			wantErr: false,
 		},
 		{
 			name:    "guard is optional",
@@ -485,6 +490,45 @@ scenario:
 
 	remaining := listPodNames(t, client)
 	assert.Equal(t, []string{"pod-control"}, remaining)
+}
+
+func TestNewPodRemover_ReturnsCorrectType(t *testing.T) {
+	client := fake.NewSimpleClientset()
+	_, evict := newPodRemover(client, StrategyEvict).(evictRemover)
+	assert.True(t, evict, "StrategyEvict should produce an evictRemover")
+	_, del := newPodRemover(client, StrategyDelete).(deleteRemover)
+	assert.True(t, del, "StrategyDelete should produce a deleteRemover")
+}
+
+func TestRun_EvictStrategyIssuesEviction(t *testing.T) {
+	node1 := makeNode("node-1", nil, false)
+	pod1 := makePod("pod-1", "node-1", nil)
+	client := fake.NewSimpleClientset(node1, pod1)
+
+	cfg, err := ParseConfig([]byte(`kind: NodeDrain
+name: test
+metadata:
+  namespace: default
+scenario:
+  when: once
+  specs:
+    strategy: evict
+    readinessTimeout: 50ms
+`))
+	require.NoError(t, err)
+	m := New(client, cfg)
+	m.pollInterval = 10 * time.Millisecond
+
+	require.NoError(t, m.Run(context.Background()))
+
+	var sawEviction bool
+	for _, a := range client.Actions() {
+		if a.GetVerb() == "create" && a.GetSubresource() == "eviction" {
+			sawEviction = true
+			break
+		}
+	}
+	assert.True(t, sawEviction, "an eviction should have been issued")
 }
 
 func TestListTargetNodes_AlphabeticalOrder(t *testing.T) {

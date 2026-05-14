@@ -25,10 +25,7 @@ const (
 	WhenPeriodic When = "periodic"
 )
 
-const (
-	defaultReadinessTimeout = 5 * time.Minute
-	defaultMinReady         = 1
-)
+const defaultReadinessTimeout = 5 * time.Minute
 
 type Config struct {
 	Kind     string          `yaml:"kind"`
@@ -159,9 +156,6 @@ func ParseConfig(data []byte) (Config, error) {
 
 	if cfg.Scenario.Specs.MinReady < 0 {
 		return Config{}, fmt.Errorf("nodedrain config: specs.minReady must be >= 0")
-	}
-	if cfg.Scenario.Specs.MinReady == 0 {
-		cfg.Scenario.Specs.MinReady = defaultMinReady
 	}
 
 	return cfg, nil

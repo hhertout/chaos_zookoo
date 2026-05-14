@@ -63,8 +63,8 @@ scenario:
 
     # Minimum number of Running pods in the namespace required to consider the
     # node absorbed. The module polls until this threshold is met or
-    # `readinessTimeout` is exceeded.
-    # Default: 1
+    # `readinessTimeout` is exceeded. Set to 0 to skip recovery waiting entirely.
+    # Default: 0
     minReady: 2
 
   # Pods and workloads to never kill, regardless of which node they land on.

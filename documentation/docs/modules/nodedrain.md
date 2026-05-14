@@ -116,7 +116,7 @@ scenario:
 | `scenario.dryRun`            | bool     | `false` | When true, produces the same log output as a real run without calling any mutating API.                  |
 | `specs.strategy`             | enum     | `evict` | `evict` uses the Eviction API (PDB-aware). `delete` is a hard delete, bypasses PDBs.                    |
 | `specs.readinessTimeout`     | duration | `5m`    | Max time to wait for recovery on a node. A timeout is a warning, not a fatal error — the drain continues. |
-| `specs.minReady`             | integer  | `1`     | Minimum number of Running pods in the namespace to consider a node recovered.                            |
+| `specs.minReady`             | integer  | `0`     | Minimum number of Running pods required before moving to the next node. `0` skips recovery waiting entirely. |
 | `specs.nodeSelector`         | map      | —       | Label selector to restrict which nodes are drained. Absent = all schedulable nodes.                     |
 | `guard.matchers`             | object   | —       | Pods matching any guard selector are never killed. Recomputed per node. See [Matchers](../concepts/matchers.md). |
 
