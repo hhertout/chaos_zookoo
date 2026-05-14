@@ -48,7 +48,7 @@ and concatenates all documents with `---` into `/app/config.yaml`.
 ```yaml
 image:
   repository: neryolab/chaos-zookoo
-  tag: "0.1.0"
+  tag: "0.2.0"
 
 # ServiceAccount: create=true lets the chart generate the SA.
 # The chart never creates a Role or RoleBinding — add them separately.

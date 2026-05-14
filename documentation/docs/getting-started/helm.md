@@ -197,7 +197,7 @@ configs:
 ```yaml
 image:
   repository: neryolab/chaos-zookoo
-  tag: "0.1.0"
+  tag: "0.2.0"
 
 serviceAccount:
   create: false  # true = chart creates the SA (no RBAC)
