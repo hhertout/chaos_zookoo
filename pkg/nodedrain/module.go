@@ -153,7 +153,9 @@ func (m *Module) listTargetNodes(ctx context.Context) ([]corev1.Node, error) {
 }
 
 func (m *Module) drainNode(ctx context.Context, nodeName string) error {
-	allPods, err := m.client.CoreV1().Pods(m.namespace).List(ctx, metav1.ListOptions{})
+	allPods, err := m.client.CoreV1().Pods(m.namespace).List(ctx, metav1.ListOptions{
+		FieldSelector: "spec.nodeName=" + nodeName,
+	})
 	if err != nil {
 		return fmt.Errorf("listing pods on node %s: %w", nodeName, err)
 	}
