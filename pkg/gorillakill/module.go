@@ -50,12 +50,12 @@ func (m *Module) Namespace() string { return m.namespace }
 
 func (m *Module) Schedule() module.Schedule {
 	if m.when == WhenOnce {
-		return module.Schedule{Mode: module.ScheduleOnce, InitialDelay: m.wait}
+		return module.Schedule{Mode: module.ScheduleOnce}
 	}
 	if m.cronExpr != "" {
 		return module.Schedule{Mode: module.ScheduleCron, CronExpr: m.cronExpr}
 	}
-	return module.Schedule{Mode: module.SchedulePeriodic, Interval: m.interval, InitialDelay: m.wait}
+	return module.Schedule{Mode: module.SchedulePeriodic, Interval: m.interval}
 }
 
 // Run deletes every pod matching the configured selectors.
