@@ -55,8 +55,8 @@ func listPods(t *testing.T, client *fake.Clientset) []corev1.Pod {
 // --- Config tests ---
 
 const baseLabelsYAML = `kind: Killing
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   interval: 60s
@@ -68,8 +68,8 @@ scenario:
 
 func TestParseConfig_RequiresMatcher(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: Killing
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   interval: 60s
@@ -79,7 +79,8 @@ scenario:
 
 func TestParseConfig_RequiresNamespace(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: Killing
-name: test
+metadata:
+  name: test
 scenario:
   interval: 60s
   matchers:
@@ -96,8 +97,8 @@ func TestParseConfig_DefaultMinAvailableIsZero(t *testing.T) {
 
 func TestParseConfig_RejectsNegativeMinAvailable(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: Killing
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   interval: 60s
@@ -111,8 +112,8 @@ scenario:
 
 func TestParseConfig_AcceptsAllMatcherTypes(t *testing.T) {
 	const tmpl = `kind: Killing
-name: test
 metadata:
+  name: test
   namespace: ns
 scenario:
   interval: 60s
@@ -148,8 +149,8 @@ func TestRun_NoPods(t *testing.T) {
 }
 
 const labelsMinAvailable1YAML = `kind: Killing
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   interval: 60s
@@ -182,8 +183,8 @@ func TestRun_KillsPodByPodName(t *testing.T) {
 	)
 
 	cfg := mustParseConfig(t, `kind: Killing
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   interval: 60s
@@ -209,8 +210,8 @@ func TestRun_KillsPodByDeployment(t *testing.T) {
 	)
 
 	cfg := mustParseConfig(t, `kind: Killing
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   interval: 60s
@@ -234,8 +235,8 @@ func TestRun_KillsPodByDaemonset(t *testing.T) {
 	)
 
 	cfg := mustParseConfig(t, `kind: Killing
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   interval: 60s
@@ -259,8 +260,8 @@ func TestRun_KillsPodByStatefulset(t *testing.T) {
 	)
 
 	cfg := mustParseConfig(t, `kind: Killing
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   interval: 60s
@@ -289,8 +290,8 @@ func TestRun_RespectsMinAvailable(t *testing.T) {
 
 func TestParseConfig_DefaultStrategyIsEvict(t *testing.T) {
 	cfg := mustParseConfig(t, `kind: Killing
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   interval: 60s
@@ -303,8 +304,8 @@ scenario:
 
 func TestParseConfig_RejectsInvalidStrategy(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: Killing
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   interval: 60s
@@ -324,8 +325,8 @@ func TestRun_DryRunSkipsDeletion(t *testing.T) {
 	)
 
 	cfg := mustParseConfig(t, `kind: Killing
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   interval: 60s
@@ -354,8 +355,8 @@ func TestRun_EvictStrategyIssuesEviction(t *testing.T) {
 	)
 
 	cfg := mustParseConfig(t, `kind: Killing
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   interval: 60s
@@ -381,8 +382,8 @@ scenario:
 func TestName(t *testing.T) {
 	client := fake.NewSimpleClientset()
 	cfg := mustParseConfig(t, `kind: Killing
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   interval: 60s
@@ -412,8 +413,8 @@ scenario:
 
 func TestParseConfig_RejectsWhitespaceOnlyName(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: Killing
-name: "   "
 metadata:
+  name: "   "
   namespace: default
 scenario:
   interval: 60s
@@ -426,8 +427,8 @@ scenario:
 
 func TestParseConfig_RejectsZeroInterval(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: Killing
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   interval: 0s
@@ -440,8 +441,8 @@ scenario:
 
 func TestParseConfig_RejectsNegativeInterval(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: Killing
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   interval: -10s
@@ -454,8 +455,8 @@ scenario:
 
 func TestParseConfig_RejectsInvalidIntervalFormat(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: Killing
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   interval: "not-a-duration"
@@ -468,8 +469,8 @@ scenario:
 
 func TestParseConfig_RejectsIntervalAndCronTogether(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: Killing
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   interval: 60s
@@ -483,8 +484,8 @@ scenario:
 
 func TestParseConfig_AcceptsCronSchedule(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: Killing
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   cron: "*/5 * * * *"
@@ -497,8 +498,8 @@ scenario:
 
 func TestParseConfig_RejectsInvalidCronExpression(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: Killing
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   cron: "not-a-cron"
@@ -511,8 +512,8 @@ scenario:
 
 func TestParseConfig_RejectsWaitWithCron(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: Killing
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   cron: "*/5 * * * *"
@@ -526,8 +527,8 @@ scenario:
 
 func TestParseConfig_RejectsWaitEqualToInterval(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: Killing
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   interval: 60s
@@ -541,8 +542,8 @@ scenario:
 
 func TestParseConfig_RejectsWaitGreaterThanInterval(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: Killing
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   interval: 60s
@@ -556,8 +557,8 @@ scenario:
 
 func TestParseConfig_RejectsNegativeWait(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: Killing
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   interval: 60s
@@ -571,8 +572,8 @@ scenario:
 
 func TestParseConfig_RejectsInvalidWaitFormat(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: Killing
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   interval: 60s
@@ -586,8 +587,8 @@ scenario:
 
 func TestParseConfig_AcceptsValidWait(t *testing.T) {
 	cfg, err := ParseConfig([]byte(`kind: Killing
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   interval: 60s

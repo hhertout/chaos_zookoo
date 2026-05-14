@@ -23,8 +23,8 @@ func mustParseConfig(t *testing.T, yaml string) Config {
 
 func TestParseConfig(t *testing.T) {
 	const minimalOnce = `kind: NodeDrain
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   when: once
@@ -48,7 +48,8 @@ scenario:
 		{
 			name: "requires namespace",
 			yaml: `kind: NodeDrain
-name: test
+metadata:
+  name: test
 scenario:
   when: once
 `,
@@ -57,8 +58,8 @@ scenario:
 		{
 			name: "requires when",
 			yaml: `kind: NodeDrain
-name: test
 metadata:
+  name: test
   namespace: default
 scenario: {}
 `,
@@ -67,8 +68,8 @@ scenario: {}
 		{
 			name: "rejects invalid when",
 			yaml: `kind: NodeDrain
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   when: always
@@ -78,8 +79,8 @@ scenario:
 		{
 			name: "once rejects interval",
 			yaml: `kind: NodeDrain
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   when: once
@@ -90,8 +91,8 @@ scenario:
 		{
 			name: "once rejects cron",
 			yaml: `kind: NodeDrain
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   when: once
@@ -107,8 +108,8 @@ scenario:
 		{
 			name: "periodic requires interval or cron",
 			yaml: `kind: NodeDrain
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   when: periodic
@@ -118,8 +119,8 @@ scenario:
 		{
 			name: "periodic rejects interval and cron together",
 			yaml: `kind: NodeDrain
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   when: periodic
@@ -131,8 +132,8 @@ scenario:
 		{
 			name: "periodic rejects invalid interval format",
 			yaml: `kind: NodeDrain
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   when: periodic
@@ -143,8 +144,8 @@ scenario:
 		{
 			name: "periodic rejects non-positive interval",
 			yaml: `kind: NodeDrain
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   when: periodic
@@ -155,8 +156,8 @@ scenario:
 		{
 			name: "periodic accepts cron schedule",
 			yaml: `kind: NodeDrain
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   when: periodic
@@ -167,8 +168,8 @@ scenario:
 		{
 			name: "periodic rejects invalid cron expression",
 			yaml: `kind: NodeDrain
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   when: periodic
@@ -179,8 +180,8 @@ scenario:
 		{
 			name: "periodic rejects wait with cron",
 			yaml: `kind: NodeDrain
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   when: periodic
@@ -192,8 +193,8 @@ scenario:
 		{
 			name: "periodic rejects wait >= interval",
 			yaml: `kind: NodeDrain
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   when: periodic
@@ -262,8 +263,8 @@ scenario:
 		{
 			name: "valid full config",
 			yaml: `kind: NodeDrain
-name: simulate-upgrade
 metadata:
+  name: simulate-upgrade
   namespace: production
 scenario:
   when: periodic
@@ -284,7 +285,7 @@ scenario:
 			wantErr: false,
 			check: func(t *testing.T, cfg Config) {
 				t.Helper()
-				assert.Equal(t, "simulate-upgrade", cfg.Name)
+				assert.Equal(t, "simulate-upgrade", cfg.Metadata.Name)
 				assert.Equal(t, "production", cfg.Metadata.Namespace)
 				assert.Equal(t, StrategyDelete, cfg.Scenario.Specs.Strategy)
 				assert.Equal(t, 3*time.Minute, cfg.Scenario.Specs.ReadinessTimeout())
@@ -341,8 +342,8 @@ func listPodNames(t *testing.T, client *fake.Clientset) []string {
 // newTestModule creates a Module with delete strategy and fast poll/timeout for tests.
 func newTestModule(client *fake.Clientset, extraYAML string) *Module {
 	base := `kind: NodeDrain
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   when: once
@@ -387,8 +388,8 @@ func TestRun_DryRun_NoPodDeleted(t *testing.T) {
 	client := fake.NewSimpleClientset(node1, pod1)
 
 	cfg, err := ParseConfig([]byte(`kind: NodeDrain
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   when: once
@@ -469,8 +470,8 @@ func TestRun_NodeSelector_FiltersNodes(t *testing.T) {
 	client := fake.NewSimpleClientset(workerNode, controlNode, podWorker, podControl)
 
 	cfg, err := ParseConfig([]byte(`kind: NodeDrain
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   when: once
@@ -506,8 +507,8 @@ func TestRun_EvictStrategyIssuesEviction(t *testing.T) {
 	client := fake.NewSimpleClientset(node1, pod1)
 
 	cfg, err := ParseConfig([]byte(`kind: NodeDrain
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   when: once
@@ -553,8 +554,8 @@ func TestWaitForRecovery_ReturnsWhenMinReadyMet(t *testing.T) {
 	client := fake.NewSimpleClientset(pod1)
 
 	cfg := mustParseConfig(t, `kind: NodeDrain
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   when: once
@@ -574,8 +575,8 @@ func TestWaitForRecovery_TimesOut(t *testing.T) {
 	client := fake.NewSimpleClientset()
 
 	cfg := mustParseConfig(t, `kind: NodeDrain
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   when: once

@@ -22,8 +22,8 @@ template with a `chaos-zookoo/restartedAt` annotation. Equivalent to
 
 ```yaml
 kind: Rollout
-name: rollout-my-deployment
 metadata:
+  name: rollout-my-deployment
   namespace: default
 scenario:
   interval: 1h
@@ -35,8 +35,8 @@ scenario:
 
 ```yaml
 kind: Rollout
-name: rollout-my-deployment             # required
 metadata:
+  name: rollout-my-deployment           # required
   namespace: default                    # required
 scenario:
   interval: 1h                          # required — Go duration (mutually exclusive with cron)

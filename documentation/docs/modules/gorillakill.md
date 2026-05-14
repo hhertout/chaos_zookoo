@@ -25,8 +25,8 @@ Run once at startup, kill everything, then idle:
 
 ```yaml
 kind: GorillaKill
-name: gorilla-my-app
 metadata:
+  name: gorilla-my-app
   namespace: default
 scenario:
   when: once
@@ -39,8 +39,8 @@ Or on an interval:
 
 ```yaml
 kind: GorillaKill
-name: periodic-zone-loss
 metadata:
+  name: periodic-zone-loss
   namespace: default
 scenario:
   when: periodic
@@ -54,8 +54,8 @@ Or on a cron schedule:
 
 ```yaml
 kind: GorillaKill
-name: nightly-zone-loss
 metadata:
+  name: nightly-zone-loss
   namespace: default
 scenario:
   when: periodic
@@ -69,8 +69,8 @@ scenario:
 
 ```yaml
 kind: GorillaKill
-name: gorilla-my-app                    # required
 metadata:
+  name: gorilla-my-app                  # required
   namespace: default                    # required
 scenario:
   when: once                            # required — "once" | "periodic"

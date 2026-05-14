@@ -36,8 +36,8 @@ Run once, drain every schedulable node in the namespace:
 
 ```yaml
 kind: NodeDrain
-name: simulate-upgrade
 metadata:
+  name: simulate-upgrade
   namespace: default
 scenario:
   when: once
@@ -47,8 +47,8 @@ Restrict to worker nodes only:
 
 ```yaml
 kind: NodeDrain
-name: simulate-upgrade
 metadata:
+  name: simulate-upgrade
   namespace: production
 scenario:
   when: once
@@ -61,8 +61,8 @@ On a cron schedule (e.g. weekly upgrade drill):
 
 ```yaml
 kind: NodeDrain
-name: weekly-drain-drill
 metadata:
+  name: weekly-drain-drill
   namespace: staging
 scenario:
   when: periodic
@@ -77,8 +77,8 @@ scenario:
 
 ```yaml
 kind: NodeDrain
-name: simulate-upgrade                  # required — log correlation id
 metadata:
+  name: simulate-upgrade                # required — log correlation id
   namespace: production                 # required — target namespace
 
 scenario:

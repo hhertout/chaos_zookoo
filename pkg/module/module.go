@@ -24,8 +24,9 @@ type Schedule struct {
 	CronExpr     string        // ScheduleCron only
 }
 
-// Metadata carries namespace-level targeting shared by all modules.
+// Metadata carries identity and targeting shared by all modules.
 type Metadata struct {
+	Name      string `yaml:"name"`
 	Namespace string `yaml:"namespace"`
 }
 

@@ -40,8 +40,8 @@ func listPods(t *testing.T, client *fake.Clientset, ns string) []corev1.Pod {
 }
 
 const onceLabelsYAML = `kind: GorillaKill
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   when: once
@@ -54,8 +54,8 @@ scenario:
 
 func TestParseConfig_RequiresMatcher(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: GorillaKill
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   when: once
@@ -65,7 +65,8 @@ scenario:
 
 func TestParseConfig_RequiresNamespace(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: GorillaKill
-name: test
+metadata:
+  name: test
 scenario:
   when: once
   matchers:
@@ -77,8 +78,8 @@ scenario:
 
 func TestParseConfig_RequiresWhen(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: GorillaKill
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   matchers:
@@ -90,8 +91,8 @@ scenario:
 
 func TestParseConfig_RejectsInvalidWhen(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: GorillaKill
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   when: sometimes
@@ -104,8 +105,8 @@ scenario:
 
 func TestParseConfig_PeriodicRequiresInterval(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: GorillaKill
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   when: periodic
@@ -123,8 +124,8 @@ func TestParseConfig_OnceWorks(t *testing.T) {
 
 func TestParseConfig_OnceRejectsInterval(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: GorillaKill
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   when: once
@@ -138,8 +139,8 @@ scenario:
 
 func TestParseConfig_OnceRejectsCron(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: GorillaKill
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   when: once
@@ -153,8 +154,8 @@ scenario:
 
 func TestParseConfig_PeriodicParsesInterval(t *testing.T) {
 	cfg := mustParseConfig(t, `kind: GorillaKill
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   when: periodic
@@ -177,8 +178,8 @@ func TestSchedule_Once(t *testing.T) {
 
 func TestSchedule_Periodic(t *testing.T) {
 	cfg := mustParseConfig(t, `kind: GorillaKill
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   when: periodic
@@ -231,8 +232,8 @@ func TestRun_KillsAllByDeployment(t *testing.T) {
 	)
 
 	cfg := mustParseConfig(t, `kind: GorillaKill
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   when: once
@@ -247,8 +248,8 @@ scenario:
 
 func TestName(t *testing.T) {
 	cfg := mustParseConfig(t, `kind: GorillaKill
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   when: once
@@ -277,8 +278,8 @@ scenario:
 
 func TestParseConfig_RejectsWhitespaceOnlyName(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: GorillaKill
-name: "   "
 metadata:
+  name: "   "
   namespace: default
 scenario:
   when: once
@@ -291,8 +292,8 @@ scenario:
 
 func TestParseConfig_PeriodicRejectsZeroInterval(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: GorillaKill
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   when: periodic
@@ -306,8 +307,8 @@ scenario:
 
 func TestParseConfig_PeriodicRejectsNegativeInterval(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: GorillaKill
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   when: periodic
@@ -321,8 +322,8 @@ scenario:
 
 func TestParseConfig_PeriodicRejectsInvalidIntervalFormat(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: GorillaKill
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   when: periodic
@@ -336,8 +337,8 @@ scenario:
 
 func TestParseConfig_PeriodicRejectsIntervalAndCronTogether(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: GorillaKill
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   when: periodic
@@ -352,8 +353,8 @@ scenario:
 
 func TestParseConfig_PeriodicAcceptsCronSchedule(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: GorillaKill
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   when: periodic
@@ -367,8 +368,8 @@ scenario:
 
 func TestParseConfig_PeriodicRejectsInvalidCronExpression(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: GorillaKill
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   when: periodic
@@ -382,8 +383,8 @@ scenario:
 
 func TestParseConfig_PeriodicRejectsWaitWithCron(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: GorillaKill
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   when: periodic
@@ -398,8 +399,8 @@ scenario:
 
 func TestParseConfig_PeriodicRejectsWaitGreaterThanInterval(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: GorillaKill
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   when: periodic
@@ -414,8 +415,8 @@ scenario:
 
 func TestParseConfig_OnceAcceptsWait(t *testing.T) {
 	_, err := ParseConfig([]byte(`kind: GorillaKill
-name: test
 metadata:
+  name: test
   namespace: default
 scenario:
   when: once

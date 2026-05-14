@@ -24,8 +24,8 @@ rollout-restart-style churn, see [Rollout](./rollout.md).
 
 ```yaml
 kind: Killing
-name: kill-my-app
 metadata:
+  name: kill-my-app
   namespace: default
 scenario:
   interval: 60s
@@ -39,8 +39,8 @@ scenario:
 
 ```yaml
 kind: Killing
-name: kill-my-app                       # required — log correlation id
 metadata:
+  name: kill-my-app                     # required — log correlation id
   namespace: default                    # required — target namespace
 scenario:
   interval: 60s                         # required — Go duration (mutually exclusive with cron)

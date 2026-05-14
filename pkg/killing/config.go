@@ -22,7 +22,6 @@ const (
 // Config holds the parsed configuration for the killing module.
 type Config struct {
 	Kind     string          `yaml:"kind"`
-	Name     string          `yaml:"name"`
 	Metadata module.Metadata `yaml:"metadata"`
 	Scenario Scenario        `yaml:"scenario"`
 
@@ -55,8 +54,8 @@ func ParseConfig(data []byte) (Config, error) {
 		return Config{}, fmt.Errorf("parsing killing config: %w", err)
 	}
 
-	cfg.Name = strings.TrimSpace(cfg.Name)
-	if cfg.Name == "" {
+	cfg.Metadata.Name = strings.TrimSpace(cfg.Metadata.Name)
+	if cfg.Metadata.Name == "" {
 		return Config{}, fmt.Errorf("killing config requires a name")
 	}
 	if cfg.Metadata.Namespace == "" {

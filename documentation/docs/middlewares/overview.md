@@ -21,8 +21,7 @@ sibling keys of `scenario:`:
 
 ```yaml
 kind: Killing
-name: kill-with-load
-metadata: {namespace: default}
+metadata: {name: kill-with-load, namespace: default}
 scenario:
   interval: 1m
   minAvailable: 1

@@ -31,8 +31,8 @@ Create `local/kill-demo.yaml`:
 
 ```yaml
 kind: Killing
-name: kill-demo
 metadata:
+  name: kill-demo
   namespace: default
 scenario:
   interval: 30s

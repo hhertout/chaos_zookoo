@@ -73,7 +73,7 @@ func New(client kubernetes.Interface, cfg Config) *Module {
 	return &Module{
 		client:       client,
 		remover:      newPodRemover(client, cfg.Scenario.Strategy),
-		name:         cfg.Name,
+		name:         cfg.Metadata.Name,
 		namespace:    cfg.Metadata.Namespace,
 		matchers:     cfg.Scenario.Matchers,
 		minAvailable: cfg.Scenario.MinAvailable,

@@ -93,8 +93,7 @@ whether the backend was unreachable or the SLO was breached. Alert on it.
 
 ```yaml
 kind: Rollout
-name: rollout-checkout
-metadata: {namespace: checkout}
+metadata: {name: rollout-checkout, namespace: checkout}
 scenario:
   interval: 1h
   matchers: {deploymentName: checkout}
