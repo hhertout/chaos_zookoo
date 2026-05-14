@@ -44,10 +44,22 @@ func (r deleteRemover) Remove(ctx context.Context, ns, name string) error {
 	return nil
 }
 
+type forceDeleteRemover struct{ client kubernetes.Interface }
+
+func (r forceDeleteRemover) Remove(ctx context.Context, ns, name string) error {
+	grace := int64(0)
+	if err := r.client.CoreV1().Pods(ns).Delete(ctx, name, metav1.DeleteOptions{GracePeriodSeconds: &grace}); err != nil {
+		return fmt.Errorf("force-deleting pod %s: %w", name, err)
+	}
+	return nil
+}
+
 func newPodRemover(client kubernetes.Interface, strategy Strategy) PodRemover {
 	switch strategy {
 	case StrategyDelete:
 		return deleteRemover{client: client}
+	case StrategyForceDelete:
+		return forceDeleteRemover{client: client}
 	default:
 		return evictRemover{client: client}
 	}

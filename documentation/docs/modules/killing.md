@@ -48,7 +48,7 @@ scenario:
   wait: 10s                             # optional — first-tick delay, < interval (ignored with cron)
   minAvailable: 1                       # required — won't kill below this floor
   dryRun: false                         # optional — log only, no API mutation
-  strategy: evict                       # optional — "evict" (default) | "delete"
+  strategy: evict                       # optional — "evict" (default) | "delete" | "force-delete"
   matchers:                             # required — at least one selector
     labels:
       app: my-app
@@ -67,7 +67,7 @@ scenario:
 | `scenario.wait`            | duration   | `0`      | Delay before the first tick. Must be `< interval`. Ignored when `cron` is set.  |
 | `scenario.minAvailable`    | integer    | `0`      | Skip the tick if `len(pods) - minAvailable <= 0`.                                |
 | `scenario.dryRun`          | bool       | `false`  | When true, logs the intended victim without calling the API.                     |
-| `scenario.strategy`        | enum       | `evict`  | `evict` uses the Eviction API (PDB-aware). `delete` is a hard delete.            |
+| `scenario.strategy`        | enum       | `evict`  | `evict` uses the Eviction API (PDB-aware). `delete` is a hard delete. `force-delete` is a hard delete with `GracePeriodSeconds=0` (SIGKILL immediately). |
 | `scenario.matchers`        | object     | —        | See [Matchers](../concepts/matchers.md). Must be non-empty.                      |
 
 ## Behavior
@@ -82,6 +82,7 @@ scenario:
 6. If `dryRun: false`, call the API:
    - `strategy: evict` → `CoreV1().Pods(ns).EvictV1(...)`
    - `strategy: delete` → `CoreV1().Pods(ns).Delete(...)`
+   - `strategy: force-delete` → `CoreV1().Pods(ns).Delete(...)` with `GracePeriodSeconds: 0`
 
 Failure modes (e.g. the API call returns an error) are logged but **do not
 stop** the module — the next tick runs as scheduled.
@@ -90,8 +91,9 @@ stop** the module — the next tick runs as scheduled.
 
 | Strategy  | Required verbs                                        |
 | --------- | ----------------------------------------------------- |
-| `evict`   | `pods` → `list`, `get`; `pods/eviction` → `create`    |
-| `delete`  | `pods` → `list`, `get`, `delete`                      |
+| `evict`          | `pods` → `list`, `get`; `pods/eviction` → `create`    |
+| `delete`         | `pods` → `list`, `get`, `delete`                       |
+| `force-delete`   | `pods` → `list`, `get`, `delete`                       |
 
 Plus whatever read access matchers need (see
 [Matchers RBAC](../concepts/matchers.md#rbac)).

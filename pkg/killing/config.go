@@ -15,8 +15,9 @@ import (
 type Strategy string
 
 const (
-	StrategyEvict  Strategy = "evict"
-	StrategyDelete Strategy = "delete"
+	StrategyEvict       Strategy = "evict"
+	StrategyDelete      Strategy = "delete"
+	StrategyForceDelete Strategy = "force-delete"
 )
 
 // Config holds the parsed configuration for the killing module.
@@ -109,9 +110,9 @@ func ParseConfig(data []byte) (Config, error) {
 	switch cfg.Scenario.Strategy {
 	case "":
 		cfg.Scenario.Strategy = StrategyEvict
-	case StrategyEvict, StrategyDelete:
+	case StrategyEvict, StrategyDelete, StrategyForceDelete:
 	default:
-		return Config{}, fmt.Errorf("invalid scenario.strategy %q: must be evict or delete", cfg.Scenario.Strategy)
+		return Config{}, fmt.Errorf("invalid scenario.strategy %q: must be evict, delete or force-delete", cfg.Scenario.Strategy)
 	}
 
 	return cfg, nil

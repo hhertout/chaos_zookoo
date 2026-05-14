@@ -11,6 +11,7 @@ import (
 	corev1 "k8s.io/api/core/v1"
 	metav1 "k8s.io/apimachinery/pkg/apis/meta/v1"
 	"k8s.io/client-go/kubernetes/fake"
+	ktesting "k8s.io/client-go/testing"
 )
 
 func mustParseConfig(t *testing.T, yaml string) Config {
@@ -377,6 +378,42 @@ scenario:
 		}
 	}
 	assert.True(t, sawEviction, "an eviction should have been issued")
+}
+
+func TestRun_ForceDeleteStrategyIssuesForceDelete(t *testing.T) {
+	labels := map[string]string{"app": "test"}
+	client := fake.NewSimpleClientset(
+		pod("pod-1", labels),
+		pod("pod-2", labels),
+	)
+
+	cfg := mustParseConfig(t, `kind: Killing
+metadata:
+  name: test
+  namespace: default
+scenario:
+  interval: 60s
+  minAvailable: 1
+  strategy: force-delete
+  matchers:
+    labels:
+      app: test
+`)
+	m := New(client, cfg)
+
+	require.NoError(t, m.Run(context.Background()))
+
+	var sawForceDelete bool
+	for _, a := range client.Actions() {
+		da, ok := a.(ktesting.DeleteAction)
+		if ok && da.GetVerb() == "delete" && da.GetResource().Resource == "pods" {
+			if da.GetDeleteOptions().GracePeriodSeconds != nil && *da.GetDeleteOptions().GracePeriodSeconds == 0 {
+				sawForceDelete = true
+				break
+			}
+		}
+	}
+	assert.True(t, sawForceDelete, "a force-delete (GracePeriodSeconds=0) should have been issued")
 }
 
 func TestName(t *testing.T) {
