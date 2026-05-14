@@ -55,7 +55,7 @@ func ParseConfig(data []byte) (Config, error) {
 
 	cfg.Metadata.Name = strings.TrimSpace(cfg.Metadata.Name)
 	if cfg.Metadata.Name == "" {
-		return Config{}, fmt.Errorf("gorillakill config requires a name")
+		return Config{}, fmt.Errorf("gorillakill config requires metadata.name")
 	}
 	if cfg.Metadata.Namespace == "" {
 		return Config{}, fmt.Errorf("gorillakill config requires metadata.namespace")
