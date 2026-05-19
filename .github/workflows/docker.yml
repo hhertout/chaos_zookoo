@@ -15,7 +15,7 @@ jobs:
       tag: ${{ steps.get_tag.outputs.tag }}
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           fetch-depth: 0
 
@@ -38,7 +38,7 @@ jobs:
             nightly_tag: "nightly"
     steps:
       - name: Checkout code
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v4
@@ -54,7 +54,7 @@ jobs:
 
       # Build and push - nightly - latest and versioned builded at every push on main (like unstable versions), ahead of a LTS release
       - name: Build and push - nightly
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./
           file: ${{ matrix.dockerfile }}
@@ -68,7 +68,7 @@ jobs:
       # previous latest and versioned builded at every push on main with the new one
       - name: Build and push - latest
         if: needs.prepare.outputs.tag != ''
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./
           file: ${{ matrix.dockerfile }}
@@ -81,7 +81,7 @@ jobs:
       # Build and push - versioned only if tag is present with the specific tag as tag
       - name: Build and push - versioned
         if: needs.prepare.outputs.tag != ''
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@v7
         with:
           context: ./
           file: ${{ matrix.dockerfile }}
