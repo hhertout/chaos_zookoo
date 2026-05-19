@@ -14,7 +14,7 @@ import (
 // Runner schedules and executes post-run tests. Tests are deferred with
 // time.AfterFunc so the wait window does not hold a goroutine.
 type Runner struct {
-	querier Querier
+	queriers map[ClientKind]Querier
 
 	mu      sync.Mutex
 	timers  map[*time.Timer]struct{}
@@ -22,32 +22,50 @@ type Runner struct {
 	wg      sync.WaitGroup
 }
 
-// NewRunner wires a runner to its backing querier. The querier may be nil,
-// in which case the runner will reject scheduling until one is configured.
-func NewRunner(querier Querier) *Runner {
+// NewRunner wires a runner to its backing queriers.
+// Pass nil or an empty map to create a runner with no backend configured.
+func NewRunner(queriers map[ClientKind]Querier) *Runner {
+	if queriers == nil {
+		queriers = make(map[ClientKind]Querier)
+	}
 	return &Runner{
-		querier: querier,
-		timers:  make(map[*time.Timer]struct{}),
+		queriers: queriers,
+		timers:   make(map[*time.Timer]struct{}),
 	}
 }
 
 // BuildRunner creates a Runner from environment configuration.
-// The lookup function is used to resolve GRAFANA_URL and GRAFANA_TOKEN.
+// It populates a Grafana client when GRAFANA_URL is set and a Prometheus client
+// when PROMETHEUS_URL is set. Both can coexist.
 func BuildRunner(getenv func(string) string) *Runner {
-	url := getenv("GRAFANA_URL")
-	if url == "" {
-		return NewRunner(nil)
+	queriers := make(map[ClientKind]Querier)
+	if u := getenv("GRAFANA_URL"); u != "" {
+		queriers[ClientGrafana] = NewGrafanaClient(u, getenv("GRAFANA_TOKEN"), nil)
 	}
-	token := getenv("GRAFANA_TOKEN")
-	return NewRunner(NewGrafanaClient(url, token, nil))
+	if u := getenv("PROMETHEUS_URL"); u != "" {
+		queriers[ClientPrometheus] = NewPrometheusClient(
+			u,
+			getenv("PROMETHEUS_TOKEN"),
+			getenv("PROMETHEUS_USERNAME"),
+			getenv("PROMETHEUS_PASSWORD"),
+			nil,
+		)
+	}
+	return NewRunner(queriers)
 }
 
-// HasQuerier reports whether the runner has a backend wired in.
+// HasQuerier reports whether the runner has at least one backend wired in.
 func (r *Runner) HasQuerier() bool {
+	return r != nil && len(r.queriers) > 0
+}
+
+// HasQuerierFor reports whether the runner has a backend for the given client kind.
+func (r *Runner) HasQuerierFor(client ClientKind) bool {
 	if r == nil {
 		return false
 	}
-	return r.querier != nil
+	_, ok := r.queriers[client]
+	return ok
 }
 
 // Schedule defers a single evaluation after spec.MaxWait(). All tests in the
@@ -121,8 +139,12 @@ func (r *Runner) runTest(ctx context.Context, name, namespace string, spec *Spec
 		return
 	}
 
-	if r.querier == nil {
-		zap.L().Warn("chaos test skipped: no querier configured", zap.String("name", name))
+	querier, ok := r.queriers[spec.Client]
+	if !ok {
+		zap.L().Warn("chaos test skipped: no querier configured for client",
+			zap.String("name", name),
+			zap.String("client", string(spec.Client)),
+		)
 		metrics.ChaosTestSuccess.WithLabelValues(name, namespace).Set(0)
 		return
 	}
@@ -130,7 +152,7 @@ func (r *Runner) runTest(ctx context.Context, name, namespace string, spec *Spec
 	allPassed := true
 	for i, d := range spec.Details {
 		queryCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
-		value, err := r.querier.Query(queryCtx, d)
+		value, err := querier.Query(queryCtx, d)
 		cancel()
 
 		if err != nil {
@@ -176,8 +198,15 @@ func NewMiddleware(runner *Runner, spec *Spec) (module.Middleware, error) {
 	if spec == nil || runner == nil {
 		return func(m module.ChaosModule) module.ChaosModule { return m }, nil
 	}
-	if !runner.HasQuerier() {
-		return nil, fmt.Errorf("testing block requires GRAFANA_URL to be set")
+	if !runner.HasQuerierFor(spec.Client) {
+		switch spec.Client {
+		case ClientGrafana:
+			return nil, fmt.Errorf("testing block requires GRAFANA_URL to be set")
+		case ClientPrometheus:
+			return nil, fmt.Errorf("testing block requires PROMETHEUS_URL to be set")
+		default:
+			return nil, fmt.Errorf("testing block: no querier configured for client %q", spec.Client)
+		}
 	}
 	return func(inner module.ChaosModule) module.ChaosModule {
 		return &wrapped{inner: inner, runner: runner, spec: spec}

@@ -42,7 +42,8 @@ func TestApplyDefaultsAndValidate_ClientValidation(t *testing.T) {
 	}{
 		{"missing client", "", "testing.client is required"},
 		{"unsupported client", "datadog", `testing.client "datadog" unsupported`},
-		{"valid client", ClientGrafana, ""},
+		{"valid grafana", ClientGrafana, ""},
+		{"valid prometheus", ClientPrometheus, ""},
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
@@ -140,6 +141,28 @@ func TestApplyDefaultsAndValidate_RequiredFields(t *testing.T) {
 			assert.Contains(t, err.Error(), tt.wantErr)
 		})
 	}
+}
+
+func TestApplyDefaultsAndValidate_Prometheus_DatasourceIdOptional(t *testing.T) {
+	s := &Spec{
+		Client: ClientPrometheus,
+		Details: []Details{
+			validDetails(func(d *Details) { d.DatasourceID = "" }),
+		},
+	}
+	assert.NoError(t, s.ApplyDefaultsAndValidate(0))
+}
+
+func TestApplyDefaultsAndValidate_Prometheus_QueryStillRequired(t *testing.T) {
+	s := &Spec{
+		Client: ClientPrometheus,
+		Details: []Details{
+			validDetails(func(d *Details) { d.DatasourceID = ""; d.Query = "" }),
+		},
+	}
+	err := s.ApplyDefaultsAndValidate(0)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "query is required")
 }
 
 func TestApplyDefaultsAndValidate_Operator(t *testing.T) {

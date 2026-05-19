@@ -17,9 +17,17 @@ k8s:
   token: ""        # ServiceAccount bearer token
 
 # Additional env vars injected into the chaos_zookoo container.
-# Required when any scenario uses a testing: block (testkit middleware):
+# Required when any scenario uses a testing: block (testkit middleware).
+#
+# For client: grafana —
 #   - GRAFANA_URL   base URL of your Grafana instance
 #   - GRAFANA_TOKEN service-account token (use secretKeyRef, not plain value)
+#
+# For client: prometheus —
+#   - PROMETHEUS_URL      base URL of your Prometheus instance
+#   - PROMETHEUS_TOKEN    bearer token (takes precedence over basic auth)
+#   - PROMETHEUS_USERNAME basic auth username
+#   - PROMETHEUS_PASSWORD basic auth password (use secretKeyRef, not plain value)
 extraEnv: []
 # - name: GRAFANA_URL
 #   value: "https://grafana.example.com"
@@ -28,14 +36,24 @@ extraEnv: []
 #     secretKeyRef:
 #       name: chaos-zookoo-grafana
 #       key: GRAFANA_TOKEN
+# - name: PROMETHEUS_URL
+#   value: "http://prometheus.monitoring.svc:9090"
+# - name: PROMETHEUS_PASSWORD
+#   valueFrom:
+#     secretKeyRef:
+#       name: chaos-zookoo-prometheus
+#       key: PROMETHEUS_PASSWORD
 
 # Kubernetes Secrets created in the release namespace.
-# Use this to inject sensitive values (e.g. GRAFANA_TOKEN) without storing
-# them as plain text. Reference them in extraEnv via secretKeyRef.
+# Use this to inject sensitive values (e.g. GRAFANA_TOKEN, PROMETHEUS_PASSWORD)
+# without storing them as plain text. Reference them in extraEnv via secretKeyRef.
 extraSecrets: []
 # - name: chaos-zookoo-grafana
 #   stringData:
 #     GRAFANA_TOKEN: "glsa_xxxxxxxxxxxx"
+# - name: chaos-zookoo-prometheus
+#   stringData:
+#     PROMETHEUS_PASSWORD: "s3cr3t"
 
 # Extra sidecars, volumes, and volume mounts appended to the pod spec.
 extraContainers: []
