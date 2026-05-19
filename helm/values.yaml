@@ -1,6 +1,6 @@
 image:
   repository: "neryolab/chaos-zookoo"
-  tag: "0.2.0"
+  tag: "0.3.0"
 
 # ServiceAccount used by the pod.
 # create: true  → the chart creates the SA (no Role/RoleBinding — add them separately).
