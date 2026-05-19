@@ -6,8 +6,8 @@ sidebar_position: 3
 # testkit
 
 `testkit` is the post-run verification middleware. After the chaos action
-completes, it waits a configurable delay, queries an observability backend
-(currently Grafana/Prometheus), and emits a pass/fail gauge.
+completes, it waits a configurable delay, queries an observability backend,
+and emits a pass/fail gauge.
 
 Put `chaos_test_success{name="<module>", namespace="<namespace>"}` on your
 chaos dashboard — it's the single signal that tells you "the scenario ran,
@@ -18,9 +18,15 @@ and the SLO held".
 `specs` accepts a **list of one or more assertions**. The metric is set to
 `1` only when every assertion passes; a single failure sets it to `0`.
 
+Two client backends are supported: **Grafana** (queries Prometheus through
+Grafana's datasource proxy) and **Prometheus** (queries the Prometheus HTTP
+API directly).
+
+### client: grafana
+
 ```yaml
 testing:
-  client: grafana                       # required — only "grafana" today
+  client: grafana
   specs:
     - datasourceKind: prometheus        # optional — default: prometheus
       datasourceId: prom-uid            # required — Grafana datasource UID
@@ -28,38 +34,70 @@ testing:
       wait: 1m                          # optional — default: 1m
       timeWindow: 10m                   # optional — default: 10m
       operator: inf                     # optional — default: eq
-      threshold: 1                      # required for numeric operators
+      threshold: 1
     - datasourceId: prom-uid            # second assertion
       query: up{service="my-app"}
       operator: eq
       threshold: 1
 ```
 
+### client: prometheus
+
+```yaml
+testing:
+  client: prometheus
+  specs:
+    - query: sum(kube_pod_status_ready{namespace="default",condition="true"})
+      wait: 2m
+      timeWindow: 10m
+      operator: sup
+      threshold: 3
+```
+
+No `datasourceId` needed — the Prometheus URL is configured via environment
+variable (see [Environment](#environment) below).
+
 ## Field reference
 
-| Field                         | Type       | Default      | Notes                                                                   |
-| ----------------------------- | ---------- | ------------ | ----------------------------------------------------------------------- |
-| `testing.client`              | enum       | —            | Required. Only `grafana` is supported.                                  |
-| `testing.specs[*].datasourceKind` | enum   | `prometheus` | Only `prometheus` is supported.                                         |
-| `testing.specs[*].datasourceId`   | string | —            | Required. Grafana datasource UID (not name).                            |
-| `testing.specs[*].query`          | string | —            | Required. PromQL expression evaluated through the datasource proxy.     |
-| `testing.specs[*].wait`           | duration | `1m`       | Delay before this assertion runs. Must be `> 0` and `<= scenario.interval`. |
-| `testing.specs[*].timeWindow`     | duration | `10m`      | Prometheus lookback used for `start`/`end` of `query_range`.            |
-| `testing.specs[*].operator`       | enum   | `eq`         | One of `eq`, `neq`, `inf` (`<`), `sup` (`>`).                           |
-| `testing.specs[*].threshold`      | number | `0`          | The value the query result is compared to.                              |
+| Field                             | Type     | Default      | Notes                                                                        |
+| --------------------------------- | -------- | ------------ | ---------------------------------------------------------------------------- |
+| `testing.client`                  | enum     | —            | Required. `grafana` or `prometheus`.                                         |
+| `testing.specs[*].datasourceKind` | enum     | `prometheus` | Only `prometheus` is supported. Ignored when `client: prometheus`.           |
+| `testing.specs[*].datasourceId`   | string   | —            | Required when `client: grafana` (Grafana datasource UID). Ignored otherwise. |
+| `testing.specs[*].query`          | string   | —            | Required. PromQL expression.                                                 |
+| `testing.specs[*].wait`           | duration | `1m`         | Delay before this assertion runs. Must be `> 0` and `<= scenario.interval`. |
+| `testing.specs[*].timeWindow`     | duration | `10m`        | Prometheus lookback used for `start`/`end` of `query_range`.                |
+| `testing.specs[*].operator`       | enum     | `eq`         | One of `eq`, `neq`, `inf` (`<`), `sup` (`>`).                               |
+| `testing.specs[*].threshold`      | number   | `0`          | The value the query result is compared to.                                   |
 
 ## Environment
 
-The Grafana client is configured from environment variables:
+### Grafana client
 
 ```bash
 GRAFANA_URL=https://grafana.example.com
 GRAFANA_TOKEN=<bearer-token>
 ```
 
-If `GRAFANA_URL` is unset, `testkit` refuses to build any middleware and
-the agent **fails at startup** — declaring a `testing:` block without
-Grafana is treated as a misconfiguration, not a soft warning.
+### Prometheus client
+
+```bash
+PROMETHEUS_URL=http://prometheus.monitoring.svc:9090
+
+# Bearer token (takes precedence over basic auth when both are set):
+PROMETHEUS_TOKEN=<bearer-token>
+
+# Basic auth (used when PROMETHEUS_TOKEN is unset):
+PROMETHEUS_USERNAME=<username>
+PROMETHEUS_PASSWORD=<password>
+```
+
+If the relevant URL env var is unset, the agent **fails at startup** when a
+module declares the matching `client:` — a misconfigured backend is treated as
+a hard error, not a soft warning.
+
+Both clients can coexist: set both `GRAFANA_URL` and `PROMETHEUS_URL` if
+different modules use different backends.
 
 ## Behavior
 
@@ -68,8 +106,8 @@ Grafana is treated as a misconfiguration, not a soft warning.
    with delay = `max(wait)` across all assertions. No goroutine stays
    parked during the wait.
 3. When the timer fires, all assertions run **sequentially**:
-   - Each querier runs a Prometheus `query_range` through Grafana's
-     datasource proxy (`/api/datasources/proxy/uid/<id>/api/v1/query_range`).
+   - Each querier runs a Prometheus `query_range` call (either through
+     Grafana's datasource proxy or directly against Prometheus).
    - Time range is `[now - timeWindow, now]`, step = `timeWindow` (one sample).
    - The **last numeric value of the first series** is compared to
      `threshold` using `operator`.
@@ -80,16 +118,16 @@ Grafana is treated as a misconfiguration, not a soft warning.
 
 ## The gauge contract
 
-| Value | Meaning                                                              |
-| ----- | -------------------------------------------------------------------- |
-| `1`   | All assertions passed.                                               |
-| `0`   | At least one assertion failed, errored, or no querier was configured. |
-| *absent* | The module never ran at least once since the agent started.       |
+| Value    | Meaning                                                              |
+| -------- | -------------------------------------------------------------------- |
+| `1`      | All assertions passed.                                               |
+| `0`      | At least one assertion failed, errored, or no querier was configured. |
+| *absent* | The module never ran at least once since the agent started.          |
 
 This is by design — a flat `0` on your dashboard is always a failure,
 whether the backend was unreachable or the SLO was breached. Alert on it.
 
-## Example: "no 5xx and service up during a rollout"
+## Example: "no 5xx and service up during a rollout" (Grafana)
 
 ```yaml
 kind: Rollout
@@ -114,10 +152,29 @@ testing:
       threshold: 1   # service must be up
 ```
 
+## Example: "pods recover after a kill" (direct Prometheus)
+
+```yaml
+kind: Killing
+metadata: {name: kill-api, namespace: api}
+scenario:
+  interval: 5m
+  minAvailable: 1
+  matchers:
+    labels: {app: api}
+
+testing:
+  client: prometheus
+  specs:
+    - query: sum(kube_pod_status_ready{namespace="api",condition="true"})
+      wait: 2m
+      timeWindow: 5m
+      operator: sup
+      threshold: 2   # at least 3 ready pods after recovery
+```
+
 ## Limitations
 
 - Single value, single series. The current querier takes the last point
   of the first series — add labels to your query if the result is
   multi-series.
-- Grafana only. A generic Prometheus client (no Grafana proxy) is a
-  plausible next step but not shipped.

@@ -36,9 +36,9 @@ scenario:
 
 # Optional cross-cutting middlewares:
 testing:
-  client: grafana
+  client: grafana           # or "prometheus" for a direct Prometheus connection
   specs:
-    - datasourceId: prom-uid
+    - datasourceId: prom-uid   # required for grafana; omit for prometheus
       query: sum(rate(http_requests_total[5m]))
       operator: sup
       threshold: 10

@@ -1,5 +1,5 @@
 // Package testkit provides post-run verification for chaos modules by
-// querying an observability backend (currently Grafana) and comparing the
+// querying an observability backend (Grafana or Prometheus) and comparing the
 // result to an expected threshold.
 package testkit
 
@@ -12,7 +12,8 @@ import (
 type ClientKind string
 
 const (
-	ClientGrafana ClientKind = "grafana"
+	ClientGrafana    ClientKind = "grafana"
+	ClientPrometheus ClientKind = "prometheus"
 )
 
 // DatasourceKind identifies the kind of datasource being queried through the client.
@@ -90,8 +91,8 @@ func (s *Spec) ApplyDefaultsAndValidate(interval time.Duration) error {
 	if s.Client == "" {
 		return fmt.Errorf("testing.client is required")
 	}
-	if s.Client != ClientGrafana {
-		return fmt.Errorf("testing.client %q unsupported: only %q is available", s.Client, ClientGrafana)
+	if s.Client != ClientGrafana && s.Client != ClientPrometheus {
+		return fmt.Errorf("testing.client %q unsupported: must be %q or %q", s.Client, ClientGrafana, ClientPrometheus)
 	}
 
 	if len(s.Details) == 0 {
@@ -99,7 +100,7 @@ func (s *Spec) ApplyDefaultsAndValidate(interval time.Duration) error {
 	}
 
 	for i := range s.Details {
-		if err := s.Details[i].applyDefaultsAndValidate(interval); err != nil {
+		if err := s.Details[i].applyDefaultsAndValidate(interval, s.Client); err != nil {
 			return fmt.Errorf("testing.specs[%d]: %w", i, err)
 		}
 	}
@@ -107,14 +108,14 @@ func (s *Spec) ApplyDefaultsAndValidate(interval time.Duration) error {
 	return nil
 }
 
-func (d *Details) applyDefaultsAndValidate(interval time.Duration) error {
+func (d *Details) applyDefaultsAndValidate(interval time.Duration, client ClientKind) error {
 	if d.DatasourceKind == "" {
 		d.DatasourceKind = DefaultDatasourceKind
 	}
 	if d.DatasourceKind != DatasourcePrometheus {
 		return fmt.Errorf("datasourceKind %q unsupported: only %q is available", d.DatasourceKind, DatasourcePrometheus)
 	}
-	if d.DatasourceID == "" {
+	if client == ClientGrafana && d.DatasourceID == "" {
 		return fmt.Errorf("datasourceId is required")
 	}
 	if d.Query == "" {

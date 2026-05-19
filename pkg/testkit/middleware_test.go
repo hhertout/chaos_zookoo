@@ -54,7 +54,7 @@ func TestRunTest_AllPass_MetricIsOne(t *testing.T) {
 	name := "all-pass"
 	namespace := "default"
 	q := &mockQuerier{results: []queryResult{{value: 1}, {value: 42}}}
-	r := NewRunner(q)
+	r := NewRunner(map[ClientKind]Querier{ClientGrafana: q})
 
 	spec := builtSpec(t,
 		validDetails(func(d *Details) { d.Operator = OperatorEq; d.Threshold = 1 }),
@@ -71,7 +71,7 @@ func TestRunTest_OneFailsFirst_MetricIsZero(t *testing.T) {
 	name := "first-fails"
 	namespace := "default"
 	q := &mockQuerier{results: []queryResult{{value: 0}, {value: 1}}}
-	r := NewRunner(q)
+	r := NewRunner(map[ClientKind]Querier{ClientGrafana: q})
 
 	spec := builtSpec(t,
 		validDetails(func(d *Details) { d.Operator = OperatorEq; d.Threshold = 1 }), // 0 != 1 → fail
@@ -88,7 +88,7 @@ func TestRunTest_OneFailsLast_MetricIsZero(t *testing.T) {
 	name := "last-fails"
 	namespace := "default"
 	q := &mockQuerier{results: []queryResult{{value: 1}, {value: 0}}}
-	r := NewRunner(q)
+	r := NewRunner(map[ClientKind]Querier{ClientGrafana: q})
 
 	spec := builtSpec(t,
 		validDetails(func(d *Details) { d.Operator = OperatorEq; d.Threshold = 1 }), // pass
@@ -108,7 +108,7 @@ func TestRunTest_QueryError_MetricIsZero_ContinuesOtherTests(t *testing.T) {
 		{value: 1},
 		{value: 1},
 	}}
-	r := NewRunner(q)
+	r := NewRunner(map[ClientKind]Querier{ClientGrafana: q})
 
 	spec := builtSpec(t,
 		validDetails(),
@@ -129,7 +129,7 @@ func TestRunTest_AllQueriesError_MetricIsZero(t *testing.T) {
 		{err: errors.New("err1")},
 		{err: errors.New("err2")},
 	}}
-	r := NewRunner(q)
+	r := NewRunner(map[ClientKind]Querier{ClientGrafana: q})
 
 	spec := builtSpec(t, validDetails(), validDetails())
 
@@ -156,7 +156,7 @@ func TestRunTest_ContextAlreadyCanceled_NoMetric(t *testing.T) {
 	metrics.ChaosTestSuccess.WithLabelValues(name, namespace).Set(99)
 
 	q := &mockQuerier{results: []queryResult{{value: 1}}}
-	r := NewRunner(q)
+	r := NewRunner(map[ClientKind]Querier{ClientGrafana: q})
 	spec := builtSpec(t, validDetails())
 
 	ctx, cancel := context.WithCancel(context.Background())
@@ -175,7 +175,7 @@ func TestSchedule_FiresAndSetsMetric(t *testing.T) {
 	name := "schedule-fires"
 	namespace := "default"
 	q := &mockQuerier{results: []queryResult{{value: 1}}}
-	r := NewRunner(q)
+	r := NewRunner(map[ClientKind]Querier{ClientGrafana: q})
 
 	spec := builtSpec(t, validDetails(func(d *Details) {
 		d.RawWait = "10ms"
@@ -195,7 +195,7 @@ func TestSchedule_StoppedRunner_DoesNotFire(t *testing.T) {
 	metrics.ChaosTestSuccess.WithLabelValues(name, namespace).Set(99)
 
 	q := &mockQuerier{results: []queryResult{{value: 1}}}
-	r := NewRunner(q)
+	r := NewRunner(map[ClientKind]Querier{ClientGrafana: q})
 	r.Stop()
 
 	spec := builtSpec(t, validDetails(func(d *Details) { d.RawWait = "10ms" }))
@@ -211,7 +211,7 @@ func TestStop_CancelsPendingTimers(t *testing.T) {
 	metrics.ChaosTestSuccess.WithLabelValues(name, namespace).Set(99)
 
 	q := &mockQuerier{results: []queryResult{{value: 1}}}
-	r := NewRunner(q)
+	r := NewRunner(map[ClientKind]Querier{ClientGrafana: q})
 
 	spec := builtSpec(t, validDetails(func(d *Details) { d.RawWait = "10s" }))
 	r.Schedule(context.Background(), name, namespace, spec)
@@ -223,8 +223,18 @@ func TestStop_CancelsPendingTimers(t *testing.T) {
 
 // ── NewRunner / HasQuerier ────────────────────────────────────────────────────
 
+func grafanaRunner(q Querier) *Runner {
+	return NewRunner(map[ClientKind]Querier{ClientGrafana: q})
+}
+
+func prometheusRunner(q Querier) *Runner {
+	return NewRunner(map[ClientKind]Querier{ClientPrometheus: q})
+}
+
+// ── NewRunner / HasQuerier / HasQuerierFor ────────────────────────────────────
+
 func TestNewRunner_HasQuerier(t *testing.T) {
-	assert.True(t, NewRunner(&mockQuerier{}).HasQuerier())
+	assert.True(t, NewRunner(map[ClientKind]Querier{ClientGrafana: &mockQuerier{}}).HasQuerier())
 	assert.False(t, NewRunner(nil).HasQuerier())
 }
 
@@ -233,10 +243,21 @@ func TestHasQuerier_NilRunner(t *testing.T) {
 	assert.False(t, r.HasQuerier())
 }
 
+func TestHasQuerierFor(t *testing.T) {
+	r := NewRunner(map[ClientKind]Querier{ClientGrafana: &mockQuerier{}})
+	assert.True(t, r.HasQuerierFor(ClientGrafana))
+	assert.False(t, r.HasQuerierFor(ClientPrometheus))
+}
+
+func TestHasQuerierFor_NilRunner(t *testing.T) {
+	var r *Runner
+	assert.False(t, r.HasQuerierFor(ClientGrafana))
+}
+
 // ── NewMiddleware ─────────────────────────────────────────────────────────────
 
 func TestNewMiddleware_NilSpec_ReturnsNoop(t *testing.T) {
-	mw, err := NewMiddleware(NewRunner(&mockQuerier{}), nil)
+	mw, err := NewMiddleware(grafanaRunner(&mockQuerier{}), nil)
 	require.NoError(t, err)
 	require.NotNil(t, mw)
 }
@@ -248,16 +269,32 @@ func TestNewMiddleware_NilRunner_ReturnsNoop(t *testing.T) {
 	require.NotNil(t, mw)
 }
 
-func TestNewMiddleware_NoQuerier_ReturnsError(t *testing.T) {
+func TestNewMiddleware_NoQuerier_Grafana_ReturnsError(t *testing.T) {
 	spec := builtSpec(t, validDetails())
 	_, err := NewMiddleware(NewRunner(nil), spec)
 	require.Error(t, err)
 	assert.Contains(t, err.Error(), "GRAFANA_URL")
 }
 
-func TestNewMiddleware_Valid_ReturnsMiddleware(t *testing.T) {
+func TestNewMiddleware_NoQuerier_Prometheus_ReturnsError(t *testing.T) {
+	spec := &Spec{Client: ClientPrometheus, Details: []Details{validDetails(func(d *Details) { d.DatasourceID = "" })}}
+	require.NoError(t, spec.ApplyDefaultsAndValidate(0))
+	_, err := NewMiddleware(NewRunner(nil), spec)
+	require.Error(t, err)
+	assert.Contains(t, err.Error(), "PROMETHEUS_URL")
+}
+
+func TestNewMiddleware_Valid_Grafana_ReturnsMiddleware(t *testing.T) {
 	spec := builtSpec(t, validDetails())
-	mw, err := NewMiddleware(NewRunner(&mockQuerier{}), spec)
+	mw, err := NewMiddleware(grafanaRunner(&mockQuerier{}), spec)
+	require.NoError(t, err)
+	require.NotNil(t, mw)
+}
+
+func TestNewMiddleware_Valid_Prometheus_ReturnsMiddleware(t *testing.T) {
+	spec := &Spec{Client: ClientPrometheus, Details: []Details{validDetails(func(d *Details) { d.DatasourceID = "" })}}
+	require.NoError(t, spec.ApplyDefaultsAndValidate(0))
+	mw, err := NewMiddleware(prometheusRunner(&mockQuerier{}), spec)
 	require.NoError(t, err)
 	require.NotNil(t, mw)
 }
