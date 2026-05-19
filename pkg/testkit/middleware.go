@@ -24,12 +24,16 @@ type Runner struct {
 
 // NewRunner wires a runner to its backing queriers.
 // Pass nil or an empty map to create a runner with no backend configured.
+// The map is copied so later mutations by the caller cannot affect the runner.
 func NewRunner(queriers map[ClientKind]Querier) *Runner {
-	if queriers == nil {
-		queriers = make(map[ClientKind]Querier)
+	snapshot := make(map[ClientKind]Querier, len(queriers))
+	for k, v := range queriers {
+		if v != nil {
+			snapshot[k] = v
+		}
 	}
 	return &Runner{
-		queriers: queriers,
+		queriers: snapshot,
 		timers:   make(map[*time.Timer]struct{}),
 	}
 }
@@ -54,18 +58,26 @@ func BuildRunner(getenv func(string) string) *Runner {
 	return NewRunner(queriers)
 }
 
-// HasQuerier reports whether the runner has at least one backend wired in.
+// HasQuerier reports whether the runner has at least one non-nil backend wired in.
 func (r *Runner) HasQuerier() bool {
-	return r != nil && len(r.queriers) > 0
+	if r == nil {
+		return false
+	}
+	for _, q := range r.queriers {
+		if q != nil {
+			return true
+		}
+	}
+	return false
 }
 
-// HasQuerierFor reports whether the runner has a backend for the given client kind.
+// HasQuerierFor reports whether the runner has a non-nil backend for the given client kind.
 func (r *Runner) HasQuerierFor(client ClientKind) bool {
 	if r == nil {
 		return false
 	}
-	_, ok := r.queriers[client]
-	return ok
+	q, ok := r.queriers[client]
+	return ok && q != nil
 }
 
 // Schedule defers a single evaluation after spec.MaxWait(). All tests in the
@@ -140,7 +152,7 @@ func (r *Runner) runTest(ctx context.Context, name, namespace string, spec *Spec
 	}
 
 	querier, ok := r.queriers[spec.Client]
-	if !ok {
+	if !ok || querier == nil {
 		zap.L().Warn("chaos test skipped: no querier configured for client",
 			zap.String("name", name),
 			zap.String("client", string(spec.Client)),
