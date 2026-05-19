@@ -12,8 +12,8 @@ import (
 type ClientKind string
 
 const (
-	ClientGrafana     ClientKind = "grafana"
-	ClientPrometheus  ClientKind = "prometheus"
+	ClientGrafana    ClientKind = "grafana"
+	ClientPrometheus ClientKind = "prometheus"
 )
 
 // DatasourceKind identifies the kind of datasource being queried through the client.

@@ -51,9 +51,6 @@ extraSecrets: []
 # - name: chaos-zookoo-grafana
 #   stringData:
 #     GRAFANA_TOKEN: "glsa_xxxxxxxxxxxx"
-# - name: chaos-zookoo-prometheus
-#   stringData:
-#     PROMETHEUS_PASSWORD: "<your-prometheus-password>"
 
 # Extra sidecars, volumes, and volume mounts appended to the pod spec.
 extraContainers: []
